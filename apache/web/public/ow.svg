@@ -1,0 +1,19 @@
+<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" xmlns:bx="https://boxy-svg.com">
+  <defs></defs>
+  <g style="" transform="matrix(1.179237, 0, 0, 1.179237, -4.301538, -4.301528)">
+    <path d="M 382.223 102.022 L 396.392 110.203 L 396.392 126.563 L 382.223 134.744 L 368.054 126.564 L 368.054 110.202 Z" style="stroke: rgb(0, 0, 0); fill: rgba(216, 216, 216, 0);" transform="matrix(0.866025, 0.5, -0.5, 0.866025, -247.823303, -269.634266)" bx:shape="n-gon 382.223 118.383 16.361 16.361 6 0 1@19ca9ec5"></path>
+    <line style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);" x1="24" y1="24" x2="40" y2="24"></line>
+    <circle style="stroke: rgb(0, 0, 0); fill: rgb(64, 78, 77);" cx="40" cy="24" r="3.536"></circle>
+    <line style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);" x1="24" y1="24" x2="32" y2="37.8564"></line>
+    <circle style="stroke: rgb(0, 0, 0); fill: rgb(64, 78, 77);" cx="32" cy="37.8564" r="3.536"></circle>
+    <line style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);" x1="24" y1="24" x2="32" y2="10.1436"></line>
+    <circle style="stroke: rgb(0, 0, 0); fill: rgb(64, 78, 77);" cx="32" cy="10.1436" r="3.536"></circle>
+    <line style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);" x1="24" y1="24" x2="8" y2="24"></line>
+    <circle style="stroke: rgb(0, 0, 0); fill: rgb(64, 78, 77);" cx="8" cy="24" r="3.536"></circle>
+    <line style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);" x1="24" y1="24" x2="16" y2="10.1436"></line>
+    <circle style="stroke: rgb(0, 0, 0); fill: rgb(64, 78, 77);" cx="16" cy="10.1436" r="3.536"></circle>
+    <line style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);" x1="24" y1="24" x2="16" y2="37.8564"></line>
+    <circle style="stroke: rgb(0, 0, 0); fill: rgb(64, 78, 77);" cx="16" cy="37.8564" r="3.536"></circle>
+    <circle style="fill: rgb(64, 78, 77); stroke: rgb(0, 0, 0);" cx="24" cy="24" r="9.365"></circle>
+  </g>
+</svg>
