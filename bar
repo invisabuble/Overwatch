@@ -9,6 +9,7 @@ echo -e "\n\033[01;92m Setting up Overwatch for : $HOST_IP\n\033[0;0m"
 # Generate the certificates if they cannout be found
 if [ ! -f apache/build/certs/overwatch.key ] || [ ! -f apache/build/certs/overwatch.crt ]; then
 	echo -e "\033[01;93mNo certificates detected. Generating them now...\033[0;0m"
+	mkdir apache/build/certs
 	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout apache/build/certs/overwatch.key -out apache/build/certs/overwatch.crt -subj "/C=UK/ST=England/L=Bristol/O=ParkSystems/CN=${HOST_IP}"
 	if [ $? -eq 0 ]; then
 		echo -e "\033[01;92mCertificates successfully generated."
