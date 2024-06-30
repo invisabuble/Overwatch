@@ -1,3 +1,5 @@
+//Author : Luke Park
+
 var screens = {}
 
 var analog_measurement_limit = 4095;

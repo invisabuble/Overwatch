@@ -1,5 +1,4 @@
-# Guide for ssl apache2 server in docker from here:
-# https://medium.com/@tshenolomos/secure-apache-with-ssl-in-docker-9efd86329129
+# Author : Luke Park
 
 FROM php:7.4-apache
 

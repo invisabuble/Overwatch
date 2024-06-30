@@ -1,3 +1,5 @@
+# Author : Luke Park
+
 import asyncio
 import ssl
 import websockets
