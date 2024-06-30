@@ -1,4 +1,4 @@
-//Author : Luke Park
+// Author : Luke Park
 
 var screens = {}
 
@@ -30,11 +30,13 @@ class create_screen {
     
     constructor (CONFIG, UUID, IP) {
         
-        /*var UUID = "C8:C9:A3:CE:91:A8";
-        var IP = "192.168.0.24";
-        var CONFIG = JSON.parse("{\"name\":\"TestDevice\",\"digital_inputs\":[19,0,27,14],\"digital_measurements\":{\"12\":{\"name\":\"status_led\",\"type\":\"output\"},\"17\":{\"name\":\"status_led\",\"type\":\"switch\"}},\"analog_measurements\":{\"33\":{\"name\":\"temp\",\"max\":\"100\",\"min\":\"-20\",\"unit\":\"C\",\"type\":\"pie\"},\"35\":{\"name\":\"temp2\",\"max\":\"120\",\"min\":\"-10\",\"unit\":\"m/s\",\"type\":\"bar\"}},\"readings\":[\"program_output\"]}");*/
+        //var UUID = "C8:C9:A3:CE:91:A8";
+        //var IP = "192.168.0.24";
+        //var CONFIG = JSON.parse("{\"name\":\"TestDevice\",\"digital_inputs\":[19,0,27,14],\"digital_measurements\":{\"12\":{\"name\":\"status_led\",\"type\":\"output\"},\"17\":{\"name\":\"status_led\",\"type\":\"switch\"}},\"analog_measurements\":{\"33\":{\"name\":\"temp\",\"max\":\"100\",\"min\":\"-20\",\"unit\":\"C\",\"type\":\"pie\"},\"35\":{\"name\":\"temp2\",\"max\":\"120\",\"min\":\"-10\",\"unit\":\"m/s\",\"type\":\"bar-graph\"}},\"readings\":[\"program_output\"]}");
         
-        //console.log(CONFIG);
+        //var CONFIG = JSON.parse("{\"name\":\"Bars\",\"digital_inputs\":[19,0,27,14],\"digital_measurements\":{\"12\":{\"name\":\"status_led1\",\"type\":\"switch\"},\"13\":{\"name\":\"status_led2\",\"type\":\"switch\"},\"14\":{\"name\":\"status_led3\",\"type\":\"switch\"},\"15\":{\"name\":\"status_led4\",\"type\":\"switch\"},\"16\":{\"name\":\"status_led5\",\"type\":\"switch\"},\"17\":{\"name\":\"status_led6\",\"type\":\"switch\"}},\"analog_measurements\":{\"35\":{\"name\":\"Temp\",\"max\":\"120\",\"min\":\"-10\",\"unit\":\"C\",\"type\":\"bar-graph\"}},\"readings\":[\"program_output\"]}");
+        
+        console.log(CONFIG);
         
         this.nickname = CONFIG["name"];
         this.uuid = UUID;
@@ -47,6 +49,7 @@ class create_screen {
         this.digital_outputs = {};
         this.analog_bars = {};
         this.analog_pies = {};
+        this.analog_bar_graphs = {};
         
         // Create main screen
         this.screen = document.createElement("screen");
@@ -113,6 +116,9 @@ class create_screen {
                     case "pie":
                         this.analog_pies[key] = value;
                         break;
+                    case "bar-graph":
+                        this.analog_bar_graphs[key] = value;
+                        break;
                     default:
                         console.log("UNRECOGNISED ANALOG TYPE : " + value["type"]);
                         
@@ -178,7 +184,7 @@ class create_screen {
                 var unit = value["unit"];
                 var id = this.uuid + "-" + io;
                 
-                var analog_bar_element = '<analog_container><analog_label class="label" contenteditable="true">' + name + '[' + unit + ']</analog_label><bar_container><bar id="' + id + '-bar"><bar_value id="' + id + '-bar-value" class="noselect">0</bar_value></bar></bar_container></analog_container>';
+                var analog_bar_element = '<analog_container><analog_label class="label" contenteditable="true">' + name + ' [' + unit + ']</analog_label><bar_container><bar id="' + id + '-bar"><bar_value id="' + id + '-bar-value" class="noselect">0</bar_value></bar></bar_container></analog_container>';
                 
                 this.analog_bar_panel.insertAdjacentHTML("beforeend", analog_bar_element);
                 
@@ -199,13 +205,45 @@ class create_screen {
                 var unit = value["unit"];
                 var id = this.uuid + "-" + io;
                 
-                var pie_element = '<pie_chart id="' + id + '-pie"><svg height="200px" width="200px" viewBox="0 0 20 20"><circle r="10" cx="10" cy="10" fill="#404E4D"/><circle id="' + id + '-wedge" r="5" cx="10" cy="10" fill="#404E4D" stroke="tomato" stroke-width="10" stroke-dasharray="0 31.42" transform="rotate(-90) translate(-20)"/><circle r="2" cx="10" cy="10" fill="white"/><text id="' + id + '-pie-percentage" x="10" y="10.8" text-anchor="middle" font-size="2" font-family="poppins" fill="black">0</text></svg><pie_label class="label">' + name + '[' + unit + ']</pie_label></pie_chart>';
+                var pie_element = '<pie_chart id="' + id + '-pie"><svg height="200px" width="200px" viewBox="0 0 20 20"><circle r="10" cx="10" cy="10" fill="#404E4D"/><circle id="' + id + '-wedge" r="5" cx="10" cy="10" fill="#404E4D" stroke="tomato" stroke-width="10" stroke-dasharray="0 31.42" transform="rotate(-90) translate(-20)"/><circle r="2" cx="10" cy="10" fill="white"/><text id="' + id + '-pie-percentage" x="10" y="10.8" text-anchor="middle" font-size="2" font-family="poppins" fill="black">0</text></svg><pie_label class="label">' + name + ' [' + unit + ']</pie_label></pie_chart>';
                 
                 this.pie_panel.insertAdjacentHTML("beforeend", pie_element);
                 
             }
             
             this.screen_content.appendChild(this.pie_panel);
+            
+        }
+        
+        //Create bar graph array
+        if (Object.keys(this.analog_bar_graphs).length > 0) {
+            
+            this.graph_container = document.createElement("graph_container");
+            this.graph_container.setAttribute("class", "panel");
+            
+            for (let [key, value] of Object.entries(this.analog_bar_graphs)) {
+                var io = key;
+                var name = value["name"];
+                var unit = value["unit"];
+                var id = this.uuid + "-" + io;
+                this.analog_bar_graphs[key].values = [0,0,0,0,0,0,0,0,0,0];
+                
+                var bar_graph_element = '<bar_graph_container id="' + id + '-bar_graph"><graph_label class="bar_label" contenteditable="true">' + name + ' [' + unit + ']</graph_label><bar_graph>'
+                
+                for (var bar = 0; bar < 10; bar++) {
+                    
+                    var bar_element = '<bar_graph_bar id="' + id + '-graph_bar-' + bar + '"><bar_graph_value id="' + id + '-graph_bar_value-' + bar + '">0</bar_graph_value></bar_graph_bar>';
+                    
+                    bar_graph_element = bar_graph_element + bar_element;
+                }
+                
+                bar_graph_element = bar_graph_element + '</bar_graph></bar_graph_container>';
+                
+                this.graph_container.insertAdjacentHTML("beforeend", bar_graph_element);
+                
+            }
+            
+            this.screen_content.appendChild(this.graph_container);
             
         }
         
@@ -301,6 +339,47 @@ class create_screen {
         
     }
     
+    add_bar_graph_value (gpio, value) {
+        
+        var id = this.uuid + '-' + gpio;
+        
+        this.analog_bar_graphs[gpio]["values"].shift();
+        this.analog_bar_graphs[gpio]["values"].push(value);
+        
+        var properties = this.analog_measurements[gpio];
+
+        var min = parseInt(properties["min"]);
+        var max = parseInt(properties["max"]);        
+        var grad = (min - max)/(-analog_measurement_limit);
+        
+        var maximum = Math.max(...this.analog_bar_graphs[gpio]["values"]);     
+        if (maximum == 0) {
+            scale = 0;
+        } else {
+            var scale = 100/maximum;
+        }
+        var scaled_values = this.analog_bar_graphs[gpio]["values"].map(num => num * scale);
+        var display_values = this.analog_bar_graphs[gpio]["values"].map(num => Math.floor((grad * num) + min));
+        
+        for (var bar = 0; bar < scaled_values.length; bar++) {
+            
+            var graph_bar = document.getElementById(id + '-graph_bar-' + bar);
+            var colour = colours[Math.floor(scaled_values[bar]/25.1)];
+            
+            graph_bar.style.height = Math.abs(scaled_values[bar]) + "%";
+            graph_bar.style.background = colour;
+            graph_bar.style.border = "2px solid " + colour;
+
+            var offset = (0.49 * Math.abs(scaled_values[bar])) - 44;
+
+            var bar_graph_value = document.getElementById(id + '-graph_bar_value-' + bar);
+            bar_graph_value.style.marginTop = offset + "px";
+            bar_graph_value.innerHTML = display_values[bar];
+            
+        }
+        
+    }
+    
     disconnected () {
         this.status.style.animation = "status_disconnected 0.3s infinite";
     }
@@ -310,17 +389,6 @@ class create_screen {
     }
     
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 

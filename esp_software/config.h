@@ -64,6 +64,14 @@ String configuration = R"(
       "type": "pie"
     },
 
+    "io-33": {
+      "name": "Pressure",
+      "max": "12",
+      "min": "-10",
+      "unit": "Atm",
+      "type": "bar-graph"
+    },
+
     "io-35": {
       "name": "temp2",
       "max": "120",
@@ -90,7 +98,7 @@ String configuration = R"(
 String configuration = R"(
 {
 
-  "name": "Test Device",
+  "name": "Test Bar Graph",
 
   "digital_inputs": [19, 0, 27, 14],
 
@@ -119,6 +127,14 @@ String configuration = R"(
   },
 
   "analog_measurements": {
+
+    "io-32": {
+      "name": "Pressure",
+      "max": "12",
+      "min": "-10",
+      "unit": "Atm",
+      "type": "bar-graph"
+    }
 
   },
 

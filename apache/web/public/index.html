@@ -1,5 +1,5 @@
 <html>
-
+    
     <!--Author : Luke Park-->
 
     <head>
@@ -9,8 +9,8 @@
         <script src="ow.js"></script>
         <link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
-
-	<link rel="icon" type="image/svg+xml" href="ow.svg">
+        
+        <link rel="icon" type="image/svg+xml" href="ow.svg">
         <link rel="shortcut icon" href="ow.ico">
         
         <title>Overwatch</title>
@@ -45,7 +45,7 @@
         
         <content id="dashboard">
             
-           
+          
             
         </content>
     
@@ -64,7 +64,7 @@
         ws.onmessage = (event) => {
             
             data = JSON.parse(event.data);
-
+            
             //console.log(data);
 
             var uuid = data["INFO"]["UUID"];
@@ -115,6 +115,10 @@
                         if (gpio in scr.analog_pies) {
                             scr.set_pie(gpio, value);
                         }
+                        
+                        if (gpio in scr.analog_bar_graphs) {
+                            scr.add_bar_graph_value(gpio, value);
+                        }
 
                     }
 
@@ -125,8 +129,16 @@
                 
             } catch (error) {
                 
+                var warning = "Couldn't parse JSON from " + ip + ". Mistake in config.h";
+                
+                if (data["ping_network"]) {
+                    console.log("New console connection established.");
+                    warning = "New console connected to network"
+                }
+
+                
                 document.getElementById("warning").innerHTML = warning_svg;
-                document.getElementById("warning_text").innerHTML = "Couldn't parse JSON from " + ip + ". Mistake in config.h";
+                document.getElementById("warning_text").innerHTML = warning;
                 
             } 
             

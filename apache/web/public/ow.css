@@ -54,6 +54,7 @@ device_status {
 /* ========== Screen CSS ========== */
 
 /* ===== Screen Banner ===== */
+
 screen {
     background: rgba(0,0,0,0.3);
     border-radius: 7.5px;
@@ -63,6 +64,7 @@ screen {
     overflow: hidden;
     opacity: 0;
     animation: screen_creation 0.3s forwards;
+    align-self: flex-start; 
 }
 
 banner {
@@ -298,6 +300,7 @@ pie_panel {
     min-height: fit-content;
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 10px;
     padding: 10px;
     justify-content: space-around;
@@ -334,6 +337,72 @@ output_container {
     width: 100%;
     gap: 10px;
     justify-content: space-around;
+}
+
+/* ===== Graph ===== */
+
+bar_graph_container {
+    min-width: 500px;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+}
+
+.bar_label {
+    min-width: 80px;
+    max-width: 120px;
+    min-height: 25px;
+    max-height: 25px;
+    background: rgba(0,0,0,0.2);
+    padding-left: 10px;
+    padding-right: 10px;
+    border-top-left-radius: 12.5px;
+    border-top-right-radius: 12.5px;
+    color: white;
+    font-family: poppins;
+    overflow: hidden;
+    text-align: center;
+}
+
+bar_graph {
+    flex-grow: 1;
+    padding-bottom: 5px;
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    background: rgba(0,0,0,0.2);
+    padding: 10px;
+    padding-top: 15px;
+    border-top-right-radius: 12.5px;
+    border-bottom-left-radius: 12.5px;
+    border-bottom-right-radius: 12.5px;
+}
+
+bar_graph_bar {
+    height: 0%;
+    width: 100%;
+    border-radius: 7px;
+    border: 2px solid rgb(255, 59, 48);
+    background: rgb(255, 59, 48);
+    align-self: flex-end;
+    display: flex;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+bar_graph_value {
+    margin-top: -44px;
+    color: black;
+    font-family: poppins;
+    font-size: 80%;
+    width: 34px;
+    height: 34px;
+    border-radius: 50px;
+    background: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
 }
 
 /* ========================== */
