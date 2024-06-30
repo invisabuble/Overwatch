@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+
+  overwatch:
+    hostname: ${ow_hostname}
+    container_name: ${ow_container_name}
+    image: python3.8-slim
+    build:
+      context: .
+      dockerfile: overwatch/overwatch.dockerfile
+    env_file: .env
+    volumes:
+      - ./apache/build/certs:/ow.certs
+      - ./overwatch/run:/ow.run
+      - ./apache/web/public:/ow.web.public
+    expose:
+      - '80'
+      - '8080'
+      - '443'
+      - '8765'
+    tty: true
+    stdin_open: true
+    network_mode: "host"
+
+  apache:
+    hostname: ${ow_apache_hostname}
+    container_name: ${ow_apache_container_name}
+    image: apache2
+    build:
+      args:
+        HOSTNAME: ${ow_apache_hostname}
+      context: .
+      dockerfile: apache/apache.dockerfile
+    env_file: .env
+    volumes:
+      - ./apache/web/public:/var/www/html
+      - ./apache/web/private:/private
+    expose:
+      - '80'
+      - '8080'
+      - '443'
+      - '8765'
+    tty: true
+    stdin_open: true
+    network_mode: "host"
+    extra_hosts:
+      - "${ow_apache_hostname}:127.0.1.1"
+

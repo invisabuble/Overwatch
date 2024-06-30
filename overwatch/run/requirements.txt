@@ -1,0 +1,5 @@
+# PIP REQUIREMENTS FOR OVERWATCH
+
+websockets
+oyaml
+getmac

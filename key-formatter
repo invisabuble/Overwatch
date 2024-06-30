@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo -e "\n\033[01;92mFormatting key...\033[0;0m\n"
+
+CERT_FILE=apache/build/certs/overwatch.crt
+
+# Read the certificate file and store its contents
+CERT_CONTENT=$(cat "$CERT_FILE")
+
+# Split the contents by newlines and add the required formatting
+FORMATTED_CERT=$(echo "$CERT_CONTENT" | sed 's/^/"/' | sed 's/$/\\n" \\/')
+
+# Remove the trailing backslash from the last line
+FORMATTED_CERT=$(echo "$FORMATTED_CERT" | sed '$s/\\$//')
+
+# Print the formatted certificate with BEGIN and END lines
+echo "$FORMATTED_CERT"
+
+echo -e "\n     \033[01;92m^^^^^\033[0;0m\n"

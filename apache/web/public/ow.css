@@ -1,0 +1,339 @@
+body {
+    background: #404E4D;
+    margin: auto;
+    overflow: hidden;
+}
+
+content {
+    position: absolute;
+    height: calc(100% - 90px);
+    width: calc(100% - 20px);
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 10px;
+    padding: 10px;
+    overflow: scroll;
+}
+
+.noselect {
+    -moz-user-select: -moz-none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+/* ========== Header CSS ========== */
+
+header {
+    background: rgba(0,0,0,0.15);
+    height: 70px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.header_text {
+    color: white;
+    display: flex;
+    align-items: center;
+    font-size: 60;
+    font-family: poppins;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+device_status {
+    display: flex;
+}
+
+/* ================================ */
+
+/* ========== Screen CSS ========== */
+
+/* ===== Screen Banner ===== */
+screen {
+    background: rgba(0,0,0,0.3);
+    border-radius: 7.5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    opacity: 0;
+    animation: screen_creation 0.3s forwards;
+}
+
+banner {
+    width: calc(100% - 10px);
+    height: 25px;
+    background: rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 5px;
+    padding-right: 5px;
+    gap: 20px;
+}
+
+.banner_object {
+    color: white;
+    font-family: poppins;
+    display: flex;
+    align-items: center;
+}
+
+ip {
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+banner:hover ip {
+    opacity: 1;
+}
+
+device_status {
+    width: fit-content;
+    flex-grow: 1;
+    display: flex;
+    justify-content: flex-end;
+    flex-direction: row;
+    gap: 10px;
+}
+
+device_warning {
+    max-width: fit-content;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+warning_text {
+    width: fit-content;
+    max-width: fit-content;
+    min-width: fit-content;
+    max-height: 60px;
+    overflow: hidden;
+    transition: all 0.5s ease;
+    opacity: 0;
+    font-size: 20;
+}
+
+device_status:hover warning_text {
+    opacity: 1;
+}
+
+status {
+    width: 15px;
+    height: 15px;
+    border-radius: 50px;
+    animation: status_connected 1s infinite;
+    transition: all 0.3s ease;
+}
+
+@keyframes screen_creation {
+    0% {
+        opacity: 0;
+    }
+    
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes status_disconnected {
+    
+    0% {
+        background: rgb(255, 105, 97);
+    }
+    
+    50% {
+        background: rgb(215, 0, 21);
+    }
+    
+    100% {
+        background: rgb(255, 105, 97);
+    }
+    
+}
+
+@keyframes status_connected {
+    
+    0% {
+        background: rgb(48, 219, 91);
+    }
+    
+    50% {
+        background: rgb(36, 138, 61);
+    }
+    
+    100% {
+        background: rgb(48, 219, 91);
+    }
+    
+}
+
+/* ========================= */
+
+/* ===== Screen Content ===== */
+
+screen_content {
+    width: calc(100%);
+    height: calc(100% - 25px);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.panel {
+    width: fit-content;
+    min-height: fit-content;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    justify-content: space-around;
+}
+
+switch_container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: fit-content;
+    width: 100%;
+    gap: 10px;
+    justify-content: space-around;
+}
+
+.label {
+    min-width: 80px;
+    max-width: 120px;
+    min-height: 25px;
+    max-height: 25px;
+    background: rgba(0,0,0,0.5);
+    padding-left: 10px;
+    padding-right: 10px;
+    border-radius: 50px;
+    color: white;
+    font-family: poppins;
+    overflow: hidden;
+    text-align: center;
+}
+
+switch {
+    width: 90px;
+    height: 50px;
+    background: rgb(255, 149, 0);
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+switch_toggler {
+    position: absolute;
+    margin-left: 1px;
+    background: white;
+    border-radius: 50px;
+    width: 48px;
+    height: 48px;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ===== Bar ===== */
+
+analog_container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: fit-content;
+    width: 100%;
+    gap: 10px;
+}
+
+bar_container {
+    width: 300px;
+    height: 50px;
+    background: #404E4D;
+    border-radius: 7.5px;
+    overflow: hidden;
+    display: flex;
+    overflow: hidden;
+}
+
+bar {
+    height: 50px;
+    width: 0%;
+    background: rgb(255, 149, 0);
+    transition: all 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+bar_value {
+    position: relative;
+    min-width: 34px;
+    min-height: 34px;
+    width: 34px;
+    height: 34px;
+    background: white;
+    border-radius: 50px;
+    font-family: poppins;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.1s ease;
+    left: 42px;
+}
+
+/* ===== Pie ===== */
+
+pie_panel {
+    width: fit-content;
+    min-height: fit-content;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    justify-content: space-around;
+}
+
+pie_chart {
+    width: fit-content;
+    height: fit-content;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+circle {
+    transition: all 0.3s ease;
+}
+
+/* ===== Output ===== */
+
+output {
+    width: 48px;
+    height: 48px;
+    border-radius: 30px;
+    background: rgb(255, 149, 0);
+    transition: all 0.3s ease;
+}
+
+output_container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: fit-content;
+    width: 100%;
+    gap: 10px;
+    justify-content: space-around;
+}
+
+/* ========================== */
+
+/* ================================ */
