@@ -32,9 +32,24 @@ header {
     background: rgba(0,0,0,0.15);
     height: 70px;
     display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+
+server_status {
+    height: 70px;
+    display: flex;
     justify-content: space-between;
     padding-left: 10px;
     align-items: center;
+}
+
+server_config {
+    padding: 10px;
+    display: flex;
+    gap: 10px;
 }
 
 icon {
@@ -116,6 +131,11 @@ device_warning {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+}
+
+warning {
+    height: 70px;
+    width: 70px;
 }
 
 warning_text {

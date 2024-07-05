@@ -19,6 +19,11 @@ function ping_network () {
     ws.send(ping_network);
 }
 
+function get_ssl_cert () {
+    var ssl_cert = JSON.stringify({ 'ssl_cert' : 'ssl_cert' });
+    ws.send(ssl_cert);
+}
+
 function update_connected_devices () {
     var number_connected = Object.keys(screens).length;
     var device_count = document.getElementById("device_count");
