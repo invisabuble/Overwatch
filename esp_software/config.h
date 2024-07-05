@@ -69,7 +69,7 @@ String configuration = R"(
       "max": "12",
       "min": "-10",
       "unit": "Atm",
-      "type": "bar-graph"
+      "type": "bar_graph"
     },
 
     "io-35": {
@@ -78,6 +78,14 @@ String configuration = R"(
       "min": "-10",
       "unit": "m/s",
       "type": "bar"
+    },
+
+    "io-32": {
+      "name": "temp",
+      "max": "100",
+      "min": "-20",
+      "unit": "C",
+      "type": "line_graph"
     }
 
   },
@@ -98,49 +106,19 @@ String configuration = R"(
 String configuration = R"(
 {
 
-  "name": "Test Bar Graph",
+  "name": "",
 
-  "digital_inputs": [19, 0, 27, 14],
+  "digital_inputs": [],
 
   "digital_measurements": {
-
-    "io-5": {
-      "name": "RELAY 1",
-      "type": "switch"
-    },
-
-    "io-17": {
-      "name": "THERM",
-      "type": "switch"
-    },
-
-    "io-16": {
-      "name": "LIGHT-L",
-      "type": "switch"
-    },
-
-    "io-4": {
-      "name": "LIGHT-R",
-      "type": "switch"
-    }
 
   },
 
   "analog_measurements": {
 
-    "io-32": {
-      "name": "Pressure",
-      "max": "12",
-      "min": "-10",
-      "unit": "Atm",
-      "type": "bar-graph"
-    }
-
   },
 
   "readings": [
-
-    "program_output"
 
   ]
 }

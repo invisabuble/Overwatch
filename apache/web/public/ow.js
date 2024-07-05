@@ -3,6 +3,7 @@
 var screens = {}
 
 var analog_measurement_limit = 4095;
+var default_array_length = 10;
 
 var red = "rgb(255, 59, 48)";
 var orange = "rgb(255, 149, 0)";
@@ -14,10 +15,8 @@ var warning_svg = '<svg height="90%" width="90%" viewBox="0 0 20 20"><defs></def
 var colours = [red,orange,yellow,green];
 
 function ping_network () {
-    
     var ping_network = JSON.stringify({ 'ping_network': 'ping_network' });
     ws.send(ping_network);
-    
 }
 
 function update_connected_devices () {
@@ -32,24 +31,18 @@ class create_screen {
         
         //var UUID = "C8:C9:A3:CE:91:A8";
         //var IP = "192.168.0.24";
-        //var CONFIG = JSON.parse("{\"name\":\"TestDevice\",\"digital_inputs\":[19,0,27,14],\"digital_measurements\":{\"12\":{\"name\":\"status_led\",\"type\":\"output\"},\"17\":{\"name\":\"status_led\",\"type\":\"switch\"}},\"analog_measurements\":{\"33\":{\"name\":\"temp\",\"max\":\"100\",\"min\":\"-20\",\"unit\":\"C\",\"type\":\"pie\"},\"35\":{\"name\":\"temp2\",\"max\":\"120\",\"min\":\"-10\",\"unit\":\"m/s\",\"type\":\"bar-graph\"}},\"readings\":[\"program_output\"]}");
+        
+        //var CONFIG = JSON.parse("{\"name\":\"TestDevice\",\"digital_inputs\":[19,0,27,14],\"digital_measurements\":{},\"analog_measurements\":{\"33\":{\"name\":\"temp\",\"max\":\"100\",\"min\":\"-20\",\"unit\":\"C\",\"type\":\"line_graph\"},\"35\":{\"name\":\"temp2\",\"max\":\"120\",\"min\":\"-10\",\"unit\":\"m/s\",\"type\":\"line_graph\"}},\"readings\":[\"program_output\"]}");
+        
+        //var CONFIG = JSON.parse("{\"name\":\"TestDevice\",\"digital_inputs\":[19,0,27,14],\"digital_measurements\":{\"12\":{\"name\":\"status_led\",\"type\":\"output\"},\"17\":{\"name\":\"status_led\",\"type\":\"switch\"},\"18\":{\"name\":\"status_led2\",\"type\":\"switch\"}},\"analog_measurements\":{\"33\":{\"name\":\"temp\",\"max\":\"100\",\"min\":\"-20\",\"unit\":\"C\",\"type\":\"pie\"},\"35\":{\"name\":\"temp2\",\"max\":\"120\",\"min\":\"-10\",\"unit\":\"m/s\",\"type\":\"bar_graph\"}},\"readings\":[\"program_output\"]}");
         
         //var CONFIG = JSON.parse("{\"name\":\"Bars\",\"digital_inputs\":[19,0,27,14],\"digital_measurements\":{\"12\":{\"name\":\"status_led1\",\"type\":\"switch\"},\"13\":{\"name\":\"status_led2\",\"type\":\"switch\"},\"14\":{\"name\":\"status_led3\",\"type\":\"switch\"},\"15\":{\"name\":\"status_led4\",\"type\":\"switch\"},\"16\":{\"name\":\"status_led5\",\"type\":\"switch\"},\"17\":{\"name\":\"status_led6\",\"type\":\"switch\"}},\"analog_measurements\":{\"35\":{\"name\":\"Temp\",\"max\":\"120\",\"min\":\"-10\",\"unit\":\"C\",\"type\":\"bar-graph\"}},\"readings\":[\"program_output\"]}");
         
         console.log(CONFIG);
         
-        this.nickname = CONFIG["name"];
+        this.config = CONFIG
         this.uuid = UUID;
         this.ip = IP;
-        
-        this.digital_measurements = CONFIG["digital_measurements"];
-        this.analog_measurements = CONFIG["analog_measurements"];
-        
-        this.digital_switches = {};
-        this.digital_outputs = {};
-        this.analog_bars = {};
-        this.analog_pies = {};
-        this.analog_bar_graphs = {};
         
         // Create main screen
         this.screen = document.createElement("screen");
@@ -62,7 +55,7 @@ class create_screen {
         // Create nickname
         this.name = document.createElement("nickname");
         this.name.setAttribute("class", "banner_object noselect");
-        this.name.textContent = this.nickname
+        this.name.textContent = this.config["name"];
         
         // Create ip
         this.screen_ip = document.createElement("ip");
@@ -81,308 +74,282 @@ class create_screen {
         this.screen.appendChild(this.banner);
         this.screen.appendChild(this.screen_content);
         
-        // Sort digital arrays
-        if (Object.keys(this.digital_measurements).length > 0) {
+        // Dictionary that holds all the panels
+        this.panels = {
+            switch : null,
+            output : null,
+            bar_graph : null,
+            bar : null,
+            pie : null,
+            line_graph : null
+        };
+        
+        this.special = {
+            line_graph : {}
+        }
+        
+        // ========== DISPLAY CREATION ========== //
+        
+        // Join analog and digital measurements together so they can be itterated through in one go
+        var joint_dict = {...this.config["analog_measurements"], ...this.config["digital_measurements"]}
+        
+        Object.keys(joint_dict).forEach(key => {
             
-            for (let [key, value] of Object.entries(this.digital_measurements)) {
-                
-                switch (value["type"]) {
-                        
-                    case "switch":
-                        this.digital_switches[key] = value;
-                        break;
-                    case "output":
-                        this.digital_outputs[key] = value;
-                        break;
-                    default:
-                        console.log("UNRECOGNISED DIGITAL TYPE : " + value["type"]);
-                        
-                }
-                
+            // Get the sub dict info for each gpio
+            var measure = joint_dict[key];
+            
+            // Get the info about the gpio
+            var io = key;
+            var name = measure["name"];
+            var type = measure["type"];
+            var id = this.uuid + "-" + io;
+            
+            // If the gpio is in the analog measurements array, calculate grad and get the units.
+            if (key in this.config["analog_measurements"]) {
+                var unit = measure["unit"];
+                var grad = (parseFloat(measure["min"]) - parseFloat(measure["max"])) / (-analog_measurement_limit);
+                this.config["analog_measurements"][key]["grad"] = grad;
             }
+            
+            // If the type is a bar_graph add a 10 digita array to graph_values key
+            if (type == "bar_graph") {
+                this.config["analog_measurements"][key]["graph_values"] = new Array(default_array_length).fill(0);
+            }
+            
+            // If the panel type doesnt exist then create it
+            if (!this.panels[type]) {
+                this.panels[type] = document.createElement(type + "_measurement_panel");
+                this.panels[type].setAttribute("class", "panel");
+            }
+            
+            // Start with an empty panel element string, go through the switch case
+            // statement and add strings to this.
+            var panel_element = null;
+            
+            switch (type) {
+                    
+                case "switch" :
+                    //console.log("DEBUG : switch", type);
+                    panel_element = '<switch_container><switch_label class="label" contenteditable="true">' + name + '</switch_label><switch id="' + id + '-switch" onclick="screens[&quot;' + this.uuid + '&quot;].toggle_switch(&quot;' + io + '&quot;)"><switch_toggler id="' + id + '-switch-toggle"></switch_toggler></switch></switch_container>';
+                    break;
+                    
+                case "output" :
+                    //console.log("DEBUG : output", type);
+                    panel_element = '<output_container><output_label class="label" contenteditable="true">' + name + '</output_label><output id="' + id + '-output"></output></output_container>';
+                    break;
+                    
+                case "pie" :
+                    //console.log("DEBUG : pie", type);
+                    panel_element = '<pie_chart id="' + id + '-pie"><svg height="200px" width="200px" viewBox="0 0 20 20"><circle r="10" cx="10" cy="10" fill="#404E4D"/><circle id="' + id + '-wedge" r="5" cx="10" cy="10" fill="#404E4D" stroke="tomato" stroke-width="10" stroke-dasharray="0 31.42" transform="rotate(-90) translate(-20)"/><circle r="2" cx="10" cy="10" fill="white"/><text id="' + id + '-pie-percentage" x="10" y="10.8" text-anchor="middle" font-size="2" font-family="poppins" fill="black">0</text></svg><pie_label class="label">' + name + ' [' + unit + ']</pie_label></pie_chart>';
+                    break;
+                    
+                case "bar" :
+                    //console.log("DEBUG : bar", type);
+                    panel_element = '<analog_container><analog_label class="label" contenteditable="true">' + name + ' [' + unit + ']</analog_label><bar_container><bar id="' + id + '-bar"><bar_value id="' + id + '-bar-value" class="noselect">0</bar_value></bar></bar_container></analog_container>';
+                    break;
+                    
+                case "bar_graph" :
+                    //console.log("DEBUG : bar_graph",type);
+                    panel_element = '<analog_graph_container id="' + id + '-bar_graph"><graph_label class="graph_label" contenteditable="true">' + name + ' [' + unit + ']</graph_label><graph>';
+                    
+                    for (var bar = 0; bar < 10; bar++) {
+                        var bar_element = '<bar_graph_bar id="' + id + '-graph_bar-' + bar + '"><bar_graph_value id="' + id + '-graph_bar_value-' + bar + '">0</bar_graph_value></bar_graph_bar>';
+                        panel_element = panel_element + bar_element;
+                    }
 
-        }
-        
-        // Sort analog arrays
-        if (Object.keys(this.analog_measurements).length > 0) {
-            
-            for (let [key, value] of Object.entries(this.analog_measurements)) {
-                
-                switch (value["type"]) {
-                        
-                    case "bar":
-                        this.analog_bars[key] = value;
-                        break;
-                    case "pie":
-                        this.analog_pies[key] = value;
-                        break;
-                    case "bar-graph":
-                        this.analog_bar_graphs[key] = value;
-                        break;
-                    default:
-                        console.log("UNRECOGNISED ANALOG TYPE : " + value["type"]);
-                        
-                }
-                
-            }
-            
-        }
-        
-        // ========== ARRAY CREATION ========== //
-        
-        // Create switch array
-        if (Object.keys(this.digital_switches).length > 0) {
-            
-            this.switch_panel = document.createElement("switch_panel");
-            this.switch_panel.setAttribute("class", "panel");
-            
-            for (let [key, value] of Object.entries(this.digital_switches)) {
-                var io = key;
-                var name = value["name"];
-                var id = this.uuid + "-" + io;
-                
-                var switch_element = '<switch_container><switch_label class="label" contenteditable="true">' + name + '</switch_label><switch id="' + id + '-switch" onclick="screens[&quot;' + this.uuid + '&quot;].toggle_switch(&quot;' + io + '&quot;)"><switch_toggler id="' + id + '-switch-toggle"></switch_toggler></switch></switch_container>'
-                
-                this.switch_panel.insertAdjacentHTML("beforeend", switch_element)
-                
-            }
-            
-            this.screen_content.appendChild(this.switch_panel);
-            
-        }
-        
-        // Create output array
-        if (Object.keys(this.digital_outputs).length > 0) {
-            
-            this.output_panel = document.createElement("output_panel");
-            this.output_panel.setAttribute("class", "panel");
-            
-            for (let [key, value] of Object.entries(this.digital_outputs)) {
-                var io = key;
-                var name = value["name"];
-                var id = this.uuid + "-" + io;
-                
-                var output_element = '<output_container><output_label class="label" contenteditable="true">' + name + '</output_label><output id="' + id + '"></output></output_container>'
-                
-                this.output_panel.insertAdjacentHTML("beforeend", output_element);
-                
-            }
-            
-            this.screen_content.appendChild(this.output_panel);
-            
-        }
-        
-        // Create bar array
-        if (Object.keys(this.analog_bars).length > 0) {
-            
-            this.analog_bar_panel = document.createElement("analog_bar_panel");
-            this.analog_bar_panel.setAttribute("class", "panel");
-            
-            for (let [key, value] of Object.entries(this.analog_bars)) {
-                var io = key;
-                var name = value["name"];
-                var unit = value["unit"];
-                var id = this.uuid + "-" + io;
-                
-                var analog_bar_element = '<analog_container><analog_label class="label" contenteditable="true">' + name + ' [' + unit + ']</analog_label><bar_container><bar id="' + id + '-bar"><bar_value id="' + id + '-bar-value" class="noselect">0</bar_value></bar></bar_container></analog_container>';
-                
-                this.analog_bar_panel.insertAdjacentHTML("beforeend", analog_bar_element);
-                
-            }
-            
-            this.screen_content.appendChild(this.analog_bar_panel);
-            
-        }
-        
-        // Create pie array
-        if (Object.keys(this.analog_pies).length > 0) {
-            
-            this.pie_panel = document.createElement("pie_panel");
-            
-            for (let [key, value] of Object.entries(this.analog_pies)) {
-                var io = key;
-                var name = value["name"];
-                var unit = value["unit"];
-                var id = this.uuid + "-" + io;
-                
-                var pie_element = '<pie_chart id="' + id + '-pie"><svg height="200px" width="200px" viewBox="0 0 20 20"><circle r="10" cx="10" cy="10" fill="#404E4D"/><circle id="' + id + '-wedge" r="5" cx="10" cy="10" fill="#404E4D" stroke="tomato" stroke-width="10" stroke-dasharray="0 31.42" transform="rotate(-90) translate(-20)"/><circle r="2" cx="10" cy="10" fill="white"/><text id="' + id + '-pie-percentage" x="10" y="10.8" text-anchor="middle" font-size="2" font-family="poppins" fill="black">0</text></svg><pie_label class="label">' + name + ' [' + unit + ']</pie_label></pie_chart>';
-                
-                this.pie_panel.insertAdjacentHTML("beforeend", pie_element);
-                
-            }
-            
-            this.screen_content.appendChild(this.pie_panel);
-            
-        }
-        
-        //Create bar graph array
-        if (Object.keys(this.analog_bar_graphs).length > 0) {
-            
-            this.graph_container = document.createElement("graph_container");
-            this.graph_container.setAttribute("class", "panel");
-            
-            for (let [key, value] of Object.entries(this.analog_bar_graphs)) {
-                var io = key;
-                var name = value["name"];
-                var unit = value["unit"];
-                var id = this.uuid + "-" + io;
-                this.analog_bar_graphs[key].values = [0,0,0,0,0,0,0,0,0,0];
-                
-                var bar_graph_element = '<bar_graph_container id="' + id + '-bar_graph"><graph_label class="bar_label" contenteditable="true">' + name + ' [' + unit + ']</graph_label><bar_graph>'
-                
-                for (var bar = 0; bar < 10; bar++) {
+                    panel_element = panel_element + '</graph></analog_graph_container>';
+                    break;
                     
-                    var bar_element = '<bar_graph_bar id="' + id + '-graph_bar-' + bar + '"><bar_graph_value id="' + id + '-graph_bar_value-' + bar + '">0</bar_graph_value></bar_graph_bar>';
+                case "line_graph" :
+                    //console.log("DEBUG : line_graph", type);
+                    this.special["line_graph"][key] = null;
+                    panel_element = '<analog_graph_container id="' + id + '-line_graph"><graph_label class="graph_label" contenteditable="true">' + name + ' [' + unit + ']</graph_label><graph id="' + id + '-line_graph-svg-container"></graph></analog_graph_container>'
+                    break;
                     
-                    bar_graph_element = bar_graph_element + bar_element;
-                }
-                
-                bar_graph_element = bar_graph_element + '</bar_graph></bar_graph_container>';
-                
-                this.graph_container.insertAdjacentHTML("beforeend", bar_graph_element);
-                
+                default :
+                    console.log("unrecognised");
+                    
             }
             
-            this.screen_content.appendChild(this.graph_container);
+            // Add panel element string to the panel of its type.
+            this.panels[type].insertAdjacentHTML("beforeend", panel_element);
             
-        }
+        });
+        
+        // ========== ADD PANELS TO SCREEN ========== //
+        
+        Object.keys(this.panels).forEach(key => {
+           
+            if (this.panels[key]) {
+                this.screen_content.appendChild(this.panels[key]);
+            }
+            
+        });
         
         // ==================================== //
         
         document.getElementById("dashboard").appendChild(this.screen);
+
+        // ========== CREATION OF LINE GRAPH SVG ========== //
+        
+        Object.keys(this.special["line_graph"]).forEach(key => {
+
+            // Must be done after the html elements are present.
+            var conf = this.config["analog_measurements"][key];
+            var id = CSS.escape(this.uuid + "-" + key + "-line_graph-svg-container");
+            this.special["line_graph"][key] = new line_graph(`#${id}`, "lg-" + key, conf);
+            
+        });
         
     }
+    
+    
+    panel_query_selector (type, identification) {
+        // Go through the panel type specified and find an element.
+        return this.panels[type].querySelector(`#${CSS.escape(this.uuid + "-" + identification)}`);
+    }
+    
+    
+    calculate_analog_values (gpio, value) {
+        // Get and calculate values for analog gpios
+        if (this.config["analog_measurements"][gpio]) {
+            
+            var parameters = this.config["analog_measurements"][gpio];
+            
+            var percentage = Math.round(value * 100 / analog_measurement_limit);
+            var colour = colours[Math.floor(percentage / 25)];
+            var grad = parseFloat(parameters["grad"]);
+            var adjusted_value = Math.round((grad * value) + parseFloat(parameters["min"]));
+            
+            return { percentage, adjusted_value, colour};
+            
+        }
+    }
+    
     
     toggle_switch (gpio) {
-        
+        // Send toggle message for gpio switch
         var gpio = gpio.substring(3);
-        
         var message = JSON.stringify({"gpio":gpio,"target":this.uuid});
         ws.send(message);
-        
     }
     
-    set_switch (gpio, state) {
+    
+    digital_switch (gpio, state) {
+        // Compute state of sent switch information
+        var switch_element = this.panel_query_selector("switch", gpio + "-switch");
+        var switch_toggler = this.panel_query_selector("switch", gpio + "-switch-toggle");
         
-        var switch_body = document.getElementById(this.uuid + '-' + gpio + '-switch');
-        var switch_toggler = document.getElementById(this.uuid + '-' + gpio + '-switch-toggle');
-
-        if (state == 0) {
-            switch_body.style.background = red;
+        if (!state) {
+            switch_element.style.background = red;
             switch_toggler.style.marginLeft = '1px';
         } else {
-            switch_body.style.background = green;
+            switch_element.style.background = green;
             switch_toggler.style.marginLeft = '41px';
         }
-        
     }
     
-    set_output (gpio, value) {
-        var output_body = document.getElementById(this.uuid + "-" + gpio);
+    
+    digital_output (gpio, state) {
+        // Compute state of sent output information
+        var output_element = this.panel_query_selector("output", gpio + "-output");
         
-        if (value == 0) {
-            output_body.style.background = red;
+        if (!state) {
+            output_element.style.background = red;
         } else {
-            output_body.style.background = green;
+            output_element.style.background = green;
         }
     }
     
-    calculate_analog_properties (gpio, value) {
-        
-        var properties = this.analog_measurements[gpio];
-        
-        var percentage = Math.floor(value * 100/analog_measurement_limit);
-        var colour = colours[Math.floor(percentage/25)];
-        var min = parseInt(properties["min"]);
-        var max = parseInt(properties["max"]);
-        
-        var grad = (min - max)/(-analog_measurement_limit);
-        var adjusted_value = (grad * value) + min;
-        
-        return { percentage, adjusted_value, colour };
-        
-    }
     
-    set_analog (gpio, value) {
+    analog_bar (gpio, value) {
+        // Compute analog bar size and colour
+        var bar_element = this.panel_query_selector("bar", gpio + "-bar");
+        var bar_value_element = this.panel_query_selector("bar", gpio + "-bar-value");
         
-        var analog_bar = document.getElementById(this.uuid + '-' + gpio + '-bar');
-        var analog_value = document.getElementById(this.uuid + '-' + gpio + '-bar-value');
+        var { percentage, adjusted_value, colour } = this.calculate_analog_values(gpio, value);
         
-        var { percentage, adjusted_value, colour } = this.calculate_analog_properties(gpio, value);
-       
-        analog_bar.style.width = percentage + "%";
-        analog_value.innerHTML = Math.floor(adjusted_value);
-        analog_bar.style.background = colour;
+        bar_element.style.width = percentage + "%";
+        bar_element.style.background = colour;
+        bar_value_element.innerHTML = adjusted_value;
         
         var offset;
         
         if (percentage <= 17) {
-            offset = (-(25/8.5) * percentage) + 42;
+            offset = (-25 * percentage / 8.5) + 42;
         } else {
             offset = -8;
         }
         
-        analog_value.style.left = offset + "px";
+        bar_value_element.style.left = offset + "px";
         
     }
     
-    set_pie (gpio, value) {
+    
+    analog_pie (gpio, value) {
+        // Compute analog pie percentage and colour
+        var { percentage, adjusted_value, colour } = this.calculate_analog_values(gpio, value);
+        var pie_wedge = this.panel_query_selector("pie", gpio + "-wedge");
+        var pie_value = this.panel_query_selector("pie", gpio + "-pie-percentage");
         
-        var analog_pie_wedge = document.getElementById(this.uuid + '-' + gpio + '-wedge');
-        var analog_pie_text = document.getElementById(this.uuid + '-' + gpio + '-pie-percentage');
-        
-        var { percentage, adjusted_value, colour } = this.calculate_analog_properties(gpio, value);
-        
-        analog_pie_wedge.style.strokeDasharray = (percentage * 0.3142) + " 31.42";
-        analog_pie_text.innerHTML = Math.floor(adjusted_value);
-        analog_pie_wedge.style.stroke = colour;
+        pie_wedge.style.strokeDasharray = (percentage * 0.3142) + " 31.42";
+        pie_wedge.style.stroke = colour;
+        pie_value.innerHTML = adjusted_value;
         
     }
     
-    add_bar_graph_value (gpio, value) {
+    
+    analog_bar_graph (gpio, value) {
         
-        var id = this.uuid + '-' + gpio;
+        value = Math.abs(value)
         
-        this.analog_bar_graphs[gpio]["values"].shift();
-        this.analog_bar_graphs[gpio]["values"].push(value);
+        var graph_info = this.config["analog_measurements"][gpio]
         
-        var properties = this.analog_measurements[gpio];
-
-        var min = parseInt(properties["min"]);
-        var max = parseInt(properties["max"]);        
-        var grad = (min - max)/(-analog_measurement_limit);
+        graph_info["graph_values"].shift();
+        graph_info["graph_values"].push(value);
         
-        var maximum = Math.max(...this.analog_bar_graphs[gpio]["values"]);     
+        var maximum = Math.max(...graph_info["graph_values"]);
         if (maximum == 0) {
-            scale = 0;
+            var scale = 0;
         } else {
-            var scale = 100/maximum;
+            var scale = 100 / maximum;
         }
-        var scaled_values = this.analog_bar_graphs[gpio]["values"].map(num => num * scale);
-        var display_values = this.analog_bar_graphs[gpio]["values"].map(num => Math.floor((grad * num) + min));
+        
+        var grad = graph_info["grad"];
+        var min = parseFloat(graph_info["min"]);
+        
+        var scaled_values = graph_info["graph_values"].map(val => Math.abs(val * scale));
+        var display_values = graph_info["graph_values"].map(val => Math.floor(grad * val + min));
         
         for (var bar = 0; bar < scaled_values.length; bar++) {
             
-            var graph_bar = document.getElementById(id + '-graph_bar-' + bar);
+            var graph_bar = this.panel_query_selector("bar_graph", gpio + "-graph_bar-" + bar);
             var colour = colours[Math.floor(scaled_values[bar]/25.1)];
             
-            graph_bar.style.height = Math.abs(scaled_values[bar]) + "%";
             graph_bar.style.background = colour;
+            graph_bar.style.height = scaled_values[bar] + "%";
             graph_bar.style.border = "2px solid " + colour;
-
-            var offset = (0.49 * Math.abs(scaled_values[bar])) - 44;
-
-            var bar_graph_value = document.getElementById(id + '-graph_bar_value-' + bar);
-            bar_graph_value.style.marginTop = offset + "px";
-            bar_graph_value.innerHTML = display_values[bar];
+            
+            var offset = (0.49 * scaled_values[bar]) - 44;
+            
+            var graph_bar_value = this.panel_query_selector("bar_graph", gpio + "-graph_bar_value-" + bar);
+            graph_bar_value.style.marginTop = offset + "px";
+            graph_bar_value.innerHTML = display_values[bar];
             
         }
         
     }
+
+
+    analog_line_graph (gpio, value) {
+        this.special["line_graph"][gpio].updateData(value);
+    }
+    
     
     disconnected () {
         this.status.style.animation = "status_disconnected 0.3s infinite";
     }
+    
     
     connected () {
         this.status.style.animation = "status_connected 1s infinite";
@@ -391,16 +358,69 @@ class create_screen {
 }
 
 
+class line_graph {
+    
+    constructor (container, id, config, width = 500, height = 300) {
 
+        this.max = parseFloat(config["max"]);
+        this.min = parseFloat(config["min"]);
+        this.grad = config["grad"];
+        
+        this.width = width;
+        this.height = height;
+        this.margin = { top: 10, right: 10, bottom: 10, left: 40 }
+        this.data = Array(10).fill(0);
+        
+        this.svg = d3.select(container).append("svg").attr("id", id).attr("width", this.width).attr("height", this.height);
+        this.g = this.svg.append("g").attr("transform", `translate(${this.margin.left},${this.margin.top})`);
+        
+        this.x = d3.scaleLinear().domain([0, 9]).range([0, this.width - this.margin.left - this.margin.right]);
+        this.y = d3.scaleLinear().domain([-100, 100]).range([this.height - this.margin.top - this.margin.bottom, 0]);
+        
+        this.line = d3.line().curve(d3.curveMonotoneX).x((d, i) => this.x(i)).y(d => this.y(d));
+        this.yAxis = this.g.append("g").attr("class", "axis").call(d3.axisLeft(this.y));
+        this.path = this.g.append("path").datum(this.data).attr("class", "line").attr("d", this.line);
+        
+        this.circleGroup = this.g.append("g");
+        this.circles = this.circleGroup.selectAll(".circle").data(this.data).enter().append("circle").attr("class", "circle").attr("r", 4).attr("cx", (d, i) => this.x(i)).attr("cy", d => this.y(d)).style("opacity", 1);
+        
+    }
+    
+     updateCircles(data) {
+        this.circles.data(data)
+          .transition()
+          .duration(300)
+          .attr("cx", (d, i) => this.x(i))
+          .attr("cy", d => this.y(d));
 
+        this.circles.exit().remove();
+      }
 
+      updateData(value) {
 
+        var value = (this.grad * value) + this.min;
 
+        this.data.shift(); // Remove the first element
+        this.data.push(value); // Add the new value at the end
 
+        // Update the y scale domain based on the new data range
+        const yExtent = d3.extent(this.data);
+        this.y = d3.scaleLinear().domain([yExtent[0] - 10, yExtent[1] + 10]).range([this.height - this.margin.top - this.margin.bottom, 0]); // Update y scale
 
+        // Update the y-axis with transition
+        this.yAxis.transition().duration(300).call(d3.axisLeft(this.y));
 
+        // Update the line path with the new data
+        this.path.datum(this.data)
+          .transition()
+          .duration(300)
+          .attr("d", this.line);
 
-
+        // Update the circles with the new data
+        this.updateCircles(this.data);
+      }
+    
+}
 
 
 

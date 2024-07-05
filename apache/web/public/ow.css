@@ -33,6 +33,13 @@ header {
     height: 70px;
     display: flex;
     justify-content: space-between;
+    padding-left: 10px;
+    align-items: center;
+}
+
+icon {
+    width: 50px;
+    height: 50px;
 }
 
 .header_text {
@@ -341,14 +348,14 @@ output_container {
 
 /* ===== Graph ===== */
 
-bar_graph_container {
+analog_graph_container {
     min-width: 500px;
     min-height: 300px;
     display: flex;
     flex-direction: column;
 }
 
-.bar_label {
+.graph_label {
     min-width: 80px;
     max-width: 120px;
     min-height: 25px;
@@ -364,7 +371,7 @@ bar_graph_container {
     text-align: center;
 }
 
-bar_graph {
+graph {
     flex-grow: 1;
     padding-bottom: 5px;
     display: flex;
@@ -405,6 +412,33 @@ bar_graph_value {
     transition: all 0.3s ease;
 }
 
+/* ===== Line Graph ===== */
+
+.line {
+    fill: none;
+    stroke: #EF2B7C;
+    stroke-width: 2px;
+  }
+  
+  .circle {
+    fill: orange;
+    stroke: orange;
+    transition: none;
+  }
+  
+  .axis path,
+  .axis line {
+    stroke: white;
+  }
+  
+  .axis {
+    font-family: poppins;
+    font-size: 12px;
+    color: white;
+  }
+
 /* ========================== */
 
 /* ================================ */
+
+
