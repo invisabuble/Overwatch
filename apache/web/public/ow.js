@@ -25,9 +25,25 @@ function get_ssl_cert () {
 }
 
 function update_connected_devices () {
-    var number_connected = Object.keys(screens).length;
+    var screen_keys = Object.keys(screens);
+    var number_connected = screen_keys.length;
     var device_count = document.getElementById("device_count");
     device_count.innerHTML = number_connected;
+
+    var connected_devices = document.getElementById('server_config_connected_devices');
+
+    screen_keys.forEach( key => {
+
+        var screen = screens[key];
+
+        var name = screen.config.name;
+        var ip = screen.ip;
+
+        var connection_str = '"' + name + '"@' + ip + "  &#8594  " + key + "<br/>"
+
+        connected_devices.insertAdjacentHTML("beforeend", connection_str);
+
+    });
 }
 
 class create_screen {
