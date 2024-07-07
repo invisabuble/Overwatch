@@ -29,8 +29,8 @@ function update_connected_devices () {
     var number_connected = screen_keys.length;
     var device_count = document.getElementById("device_count");
     device_count.innerHTML = number_connected;
-
-    var connected_devices = document.getElementById('server_config_connected_devices');
+    
+    var connection_str = "";
 
     screen_keys.forEach( key => {
 
@@ -39,11 +39,11 @@ function update_connected_devices () {
         var name = screen.config.name;
         var ip = screen.ip;
 
-        var connection_str = '"' + name + '"@' + ip + "  &#8594  " + key + "<br/>"
-
-        connected_devices.insertAdjacentHTML("beforeend", connection_str);
+        connection_str = connection_str + '"' + name + '"@' + ip + "  &#8594  " + key + "<br/>"
 
     });
+
+    document.getElementById('server_config_connected_devices').innerHTML = connection_str;
 }
 
 class create_screen {
