@@ -77,7 +77,7 @@
 
                         <config_panel class="panel" style="flex-direction: row;">
                             
-                            <analog_graph_container id="server_config_ssl_cert" style="max-width: fit-content; min-width: fit-content; max-height: fit-content; min-height: fit-content;">
+                            <analog_graph_container id="server_config_ssl_cert" style="max-width: fit-content; min-width: 200px; max-height: fit-content; min-height: fit-content;">
                                 <graph_label class="graph_label noselect">SSL Cert</graph_label>
                                 <graph id="server_config_ssl_cert_container" style="color: white; font-family: poppins; font-size: 10px;">
                                     ----- NO SSL CERT DETECTED -----
@@ -85,7 +85,7 @@
 
                             </analog_graph_container>
 
-                            <analog_graph_container id="server_config_ssl_cert" style="max-width: fit-content; min-width: fit-content; max-height: fit-content; min-height: fit-content;">
+                            <analog_graph_container id="server_config_ssl_cert" style="max-width: fit-content; min-width: 200px; max-height: fit-content; min-height: fit-content;">
                                 <graph_label class="graph_label noselect">Devices</graph_label>
                                 <graph id="server_config_connected_devices" style="color: white; font-family: poppins;">
 
@@ -112,7 +112,7 @@
     <script>
 
         // Get the origin address of the host
-        //var host_ip = window.location.origin;
+        //var host_addr = window.location.origin;
         var host_addr = "http://192.168.0.33"
         var host_status = document.getElementById("server_status");
 
@@ -237,13 +237,19 @@
 
 
         const header = document.getElementById('header');
+        const dashboard = document.getElementById('dashboard');
 
-        header.addEventListener('mouseover', () => {
-            header.style.height = header.scrollHeight + 'px';
-        });
+        let isExpanded = false;
 
-        header.addEventListener('mouseout', () => {
-            header.style.height = '70px';
+        header.addEventListener('click', () => {
+            if (isExpanded) {
+                header.style.height = '70px';
+                dashboard.style.height = "calc(100% - 90px)";
+            } else {
+                header.style.height = header.scrollHeight + 'px';
+                dashboard.style.height = "calc(100% + " + ( - header.scrollHeight ) + "px)";
+            }
+            isExpanded = !isExpanded;
         });
         
     </script>

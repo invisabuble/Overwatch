@@ -16,6 +16,7 @@ content {
     gap: 10px;
     padding: 10px;
     overflow: scroll;
+    transition: height 0.3s ease;
 }
 
 .noselect {
