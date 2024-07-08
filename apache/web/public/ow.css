@@ -130,12 +130,17 @@ device_status {
 device_config {
     width: 0px;
     height: 0px;
-    background: #292F36;
+    background: rgba(41,47,54,0.5);
     color: white;
     transition: all 0.3s ease-in-out;
     overflow-y: auto;
     overflow-x: hidden;
     overflow: scroll;
+}
+
+pre {
+    font-family: Cutive Mono;
+    font-size: 13px;
 }
 
 device_warning {

@@ -93,8 +93,7 @@ class create_screen {
         this.device_config.setAttribute("id", this.uuid + "-device_config");
         this.device_config.setAttribute("contenteditable", "true");
         this.device_config_pre = document.createElement("pre");
-        this.device_config_pre.setAttribute("style", 'style="font-family: Cutive Mono;"');
-        this.device_config_pre.textContent = JSON.stringify(this.config, null, 4);
+        this.device_config_pre.setAttribute("style", 'style="font-family: \'Cutive Mono\', monospace;"');
         this.dev_conf_open = false;
         
         // Create screen content
@@ -164,12 +163,12 @@ class create_screen {
                     
                 case "switch" :
                     //console.log("DEBUG : switch", type);
-                    panel_element = '<switch_container><switch_label class="label" contenteditable="true">' + name + '</switch_label><switch id="' + id + '-switch" onclick="screens[&quot;' + this.uuid + '&quot;].toggle_switch(&quot;' + io + '&quot;)"><switch_toggler id="' + id + '-switch-toggle"></switch_toggler></switch></switch_container>';
+                    panel_element = '<switch_container><switch_label class="label">' + name + '</switch_label><switch id="' + id + '-switch" onclick="screens[&quot;' + this.uuid + '&quot;].toggle_switch(&quot;' + io + '&quot;)"><switch_toggler id="' + id + '-switch-toggle"></switch_toggler></switch></switch_container>';
                     break;
                     
                 case "output" :
                     //console.log("DEBUG : output", type);
-                    panel_element = '<output_container><output_label class="label" contenteditable="true">' + name + '</output_label><output id="' + id + '-output"></output></output_container>';
+                    panel_element = '<output_container><output_label class="label">' + name + '</output_label><output id="' + id + '-output"></output></output_container>';
                     break;
                     
                 case "pie" :
@@ -179,12 +178,12 @@ class create_screen {
                     
                 case "bar" :
                     //console.log("DEBUG : bar", type);
-                    panel_element = '<analog_container><analog_label class="label" contenteditable="true">' + name + ' [' + unit + ']</analog_label><bar_container><bar id="' + id + '-bar"><bar_value id="' + id + '-bar-value" class="noselect">0</bar_value></bar></bar_container></analog_container>';
+                    panel_element = '<analog_container><analog_label class="label">' + name + ' [' + unit + ']</analog_label><bar_container><bar id="' + id + '-bar"><bar_value id="' + id + '-bar-value" class="noselect">0</bar_value></bar></bar_container></analog_container>';
                     break;
                     
                 case "bar_graph" :
                     //console.log("DEBUG : bar_graph",type);
-                    panel_element = '<analog_graph_container id="' + id + '-bar_graph"><graph_label class="graph_label" contenteditable="true">' + name + ' [' + unit + ']</graph_label><graph>';
+                    panel_element = '<analog_graph_container id="' + id + '-bar_graph"><graph_label class="graph_label">' + name + ' [' + unit + ']</graph_label><graph>';
                     
                     for (var bar = 0; bar < 10; bar++) {
                         var bar_element = '<bar_graph_bar id="' + id + '-graph_bar-' + bar + '"><bar_graph_value id="' + id + '-graph_bar_value-' + bar + '">0</bar_graph_value></bar_graph_bar>';
@@ -197,7 +196,7 @@ class create_screen {
                 case "line_graph" :
                     //console.log("DEBUG : line_graph", type);
                     this.special["line_graph"][key] = null;
-                    panel_element = '<analog_graph_container id="' + id + '-line_graph"><graph_label class="graph_label" contenteditable="true">' + name + ' [' + unit + ']</graph_label><graph id="' + id + '-line_graph-svg-container"></graph></analog_graph_container>'
+                    panel_element = '<analog_graph_container id="' + id + '-line_graph"><graph_label class="graph_label">' + name + ' [' + unit + ']</graph_label><graph id="' + id + '-line_graph-svg-container"></graph></analog_graph_container>'
                     break;
                     
                 default :
@@ -234,6 +233,9 @@ class create_screen {
             this.special["line_graph"][key] = new line_graph(`#${id}`, "lg-" + key, conf);
             
         });
+
+        // finally add the config to the device config panel.
+        this.device_config_pre.textContent = JSON.stringify(this.config, null, 1);
         
     }
     
@@ -282,7 +284,9 @@ class create_screen {
 
             } else {
                 console.log("Config has changed, sending new config to " + this.uuid + "...");
-                console.log(new_config);
+
+                //console.log(this.config);
+                //console.log(JSON.parse(new_config));
                 
                 this.screen.style.animation = "screen_deletion 0.3s forwards";
 
@@ -297,7 +301,7 @@ class create_screen {
             }
 
             this.dev_conf_open = false;
-            
+
         } else {
             this.device_config.style.height = this.device_config.scrollHeight + "px";
             this.device_config.style.width = "100%";
