@@ -129,9 +129,9 @@ aEqihDDYtp50Kb4qompczNk=
 -----END CERTIFICATE-----
 )";
 
-const char* ssid = "Parks";
-const char* pswd = "gzryvrBLq7qh";
-const char* host = "192.168.0.33";
+const char* ssid = "ssid";
+const char* pswd = "pswd";
+const char* host = "pi-host";
 const char* port = "8765";
 int analog_threshold = 200;
 
