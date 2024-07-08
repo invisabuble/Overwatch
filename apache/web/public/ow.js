@@ -279,6 +279,7 @@ class create_screen {
 
             if (JSON.stringify(dev_conf) == JSON.stringify(this.config)) {
                 console.log("Config is the same");
+
             } else {
                 console.log("Config has changed, sending new config to " + this.uuid + "...");
                 console.log(new_config);
@@ -296,10 +297,12 @@ class create_screen {
             }
 
             this.dev_conf_open = false;
+            
         } else {
             this.device_config.style.height = this.device_config.scrollHeight + "px";
             this.device_config.style.width = "100%";
             this.dev_conf_open = true;
+
         }
 
     }
