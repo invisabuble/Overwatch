@@ -406,8 +406,9 @@ class line_graph {
         this.circles = this.circleGroup.selectAll(".circle").data(this.data).enter().append("circle").attr("class", "circle").attr("r", 4).attr("cx", (d, i) => this.x(i)).attr("cy", d => this.y(d)).style("opacity", 1);
         
     }
+
     
-     updateCircles(data) {
+    updateCircles(data) {
         this.circles.data(data)
           .transition()
           .duration(300)
@@ -415,14 +416,15 @@ class line_graph {
           .attr("cy", d => this.y(d));
 
         this.circles.exit().remove();
-      }
+    }
+    
 
-      updateData(value) {
-
+    updateData(value) {
+        
         var value = (this.grad * value) + this.min;
 
-        this.data.shift(); // Remove the first element
-        this.data.push(value); // Add the new value at the end
+        this.data.shift();
+        this.data.push(value);
 
         // Update the y scale domain based on the new data range
         const yExtent = d3.extent(this.data);
@@ -439,7 +441,7 @@ class line_graph {
 
         // Update the circles with the new data
         this.updateCircles(this.data);
-      }
+    }
     
 }
 
