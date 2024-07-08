@@ -127,6 +127,17 @@ device_status {
     gap: 10px;
 }
 
+device_config {
+    width: 0px;
+    height: 0px;
+    background: #292F36;
+    color: white;
+    transition: all 0.3s ease-in-out;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overflow: scroll;
+}
+
 device_warning {
     max-width: fit-content;
     display: flex;
@@ -169,6 +180,16 @@ status {
     
     100% {
         opacity: 1;
+    }
+}
+
+@keyframes screen_deletion {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
     }
 }
 
@@ -461,5 +482,4 @@ bar_graph_value {
 /* ========================== */
 
 /* ================================ */
-
 

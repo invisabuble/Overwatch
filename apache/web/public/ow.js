@@ -76,6 +76,7 @@ class create_screen {
         // Create nickname
         this.name = document.createElement("nickname");
         this.name.setAttribute("class", "banner_object noselect");
+        this.name.setAttribute("onclick", "screens['" + this.uuid + "'].toggle_device_config()");
         this.name.textContent = this.config["name"];
         
         // Create ip
@@ -85,14 +86,26 @@ class create_screen {
         
         // Create status
         this.status = document.createElement("status");
+
+        // Create device config
+
+        this.device_config = document.createElement("device_config");
+        this.device_config.setAttribute("id", this.uuid + "-device_config");
+        this.device_config.setAttribute("contenteditable", "true");
+        this.device_config_pre = document.createElement("pre");
+        this.device_config_pre.setAttribute("style", 'style="font-family: Cutive Mono;"');
+        this.device_config_pre.textContent = JSON.stringify(this.config, null, 4);
+        this.dev_conf_open = false;
         
         // Create screen content
         this.screen_content = document.createElement("screen_content");
-        
+
         this.banner.appendChild(this.name);
         this.banner.appendChild(this.screen_ip);
         this.banner.appendChild(this.status);
         this.screen.appendChild(this.banner);
+        this.device_config.appendChild(this.device_config_pre);
+        this.screen.appendChild(this.device_config);
         this.screen.appendChild(this.screen_content);
         
         // Dictionary that holds all the panels
@@ -245,6 +258,50 @@ class create_screen {
             return { percentage, adjusted_value, colour};
             
         }
+    }
+
+
+    toggle_device_config () {
+        // Open or close the device config panel
+        if (this.dev_conf_open) {
+            this.device_config.style.height = "0px";
+            this.device_config.style.width = "0px";
+
+            var dev_conf = JSON.parse(this.device_config_pre.innerText);
+
+            var new_config = JSON.stringify({
+
+                'set_config' : dev_conf,
+                'UUID' : this.uuid,
+                'IP' : this.ip,
+
+            });
+
+            if (JSON.stringify(dev_conf) == JSON.stringify(this.config)) {
+                console.log("Config is the same");
+            } else {
+                console.log("Config has changed, sending new config to " + this.uuid + "...");
+                console.log(new_config);
+                
+                this.screen.style.animation = "screen_deletion 0.3s forwards";
+
+                setTimeout(() => {
+
+                    this.screen.remove();
+                    ws.send(new_config);
+                    delete screens[this.uuid];
+
+                }, 310);
+
+            }
+
+            this.dev_conf_open = false;
+        } else {
+            this.device_config.style.height = this.device_config.scrollHeight + "px";
+            this.device_config.style.width = "100%";
+            this.dev_conf_open = true;
+        }
+
     }
     
     
@@ -417,7 +474,7 @@ class line_graph {
 
         this.circles.exit().remove();
     }
-    
+
 
     updateData(value) {
         

@@ -7,6 +7,7 @@
 #include <ArduinoJson.h>
 #include <vector>
 #include <Preferences.h>
+#include <esp_system.h>
 
 
 Preferences preferences;
@@ -241,6 +242,7 @@ class overwatch_client {
         String new_config = stringify_json(instruction["set_config"]);
         Serial.println(new_config);
         preferences_read_write("configuration", new_config, true);
+        ESP.restart();
         return;
       }
 
