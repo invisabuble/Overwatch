@@ -7,13 +7,12 @@ void setup() {
   
   Serial.begin(115200);
 
-  ow = new overwatch_client("Parks", "gzryvrBLq7qh", "192.168.0.33", ssl_cert);
+  ow = new overwatch_client();
 
 }
 
 void loop() {
 
   ow->overwatch_loop();
-  
-}
 
+}
