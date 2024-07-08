@@ -139,7 +139,7 @@ int analog_threshold = 200;
 String configuration = R"(
 {
 
-  "name": "",
+  "name": "ESP-32",
 
   "digital_inputs": [],
 
