@@ -459,7 +459,7 @@ class line_graph {
         this.svg = d3.select(container).append("svg").attr("id", id).attr("width", this.width).attr("height", this.height);
         this.g = this.svg.append("g").attr("transform", `translate(${this.margin.left},${this.margin.top})`);
         
-        this.x = d3.scaleLinear().domain([0, 9]).range([0, this.width - this.margin.left - this.margin.right]);
+        this.x = d3.scaleLinear().domain([0, (this.data.length - 1)]).range([0, this.width - this.margin.left - this.margin.right]);
         this.y = d3.scaleLinear().domain([-100, 100]).range([this.height - this.margin.top - this.margin.bottom, 0]);
         
         this.line = d3.line().curve(d3.curveMonotoneX).x((d, i) => this.x(i)).y(d => this.y(d));
