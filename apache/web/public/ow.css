@@ -133,14 +133,31 @@ device_config {
     background: rgba(41,47,54,0.5);
     color: white;
     transition: all 0.3s ease-in-out;
-    overflow-y: auto;
-    overflow-x: hidden;
     overflow: scroll;
+    display: flex;
+    flex-direction: column;
 }
 
 pre {
     font-family: Cutive Mono;
-    font-size: 13px;
+    background: none;
+    animation: none;
+}
+
+device_config_send {
+    background: #2081C3;
+    min-height: 40px;
+    width: calc(100% - 30px);
+    border-radius: 7.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: poppins;
+    align-self: center;
+}
+
+device_config_send:active {
+    transform: translateY(1px);
 }
 
 device_warning {
@@ -176,6 +193,20 @@ status {
     border-radius: 50px;
     animation: status_connected 1s infinite;
     transition: all 0.3s ease;
+}
+
+@keyframes device_config_error {
+    0% {
+        background: none;
+    }
+
+    10% {
+        background: red;
+    }
+
+    100% {
+        background: none;
+    }
 }
 
 @keyframes screen_creation {

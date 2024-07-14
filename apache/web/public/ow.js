@@ -3,7 +3,8 @@
 var screens = {}
 
 var analog_measurement_limit = 4095;
-var default_array_length = 10;
+var default_bar_graph_length = 10;
+var default_line_graph_length = 10;
 
 var red = "rgb(255, 59, 48)";
 var orange = "rgb(255, 149, 0)";
@@ -19,10 +20,12 @@ function ping_network () {
     ws.send(ping_network);
 }
 
+
 function get_ssl_cert () {
     var ssl_cert = JSON.stringify({ 'ssl_cert' : 'ssl_cert' });
     ws.send(ssl_cert);
 }
+
 
 function update_connected_devices () {
     var screen_keys = Object.keys(screens);
@@ -46,169 +49,180 @@ function update_connected_devices () {
     document.getElementById('server_config_connected_devices').innerHTML = connection_str;
 }
 
+
+function set_attributes (parent_element, properties) {
+
+    for (var prop_arr = 0; prop_arr < properties.length; prop_arr++) {
+
+        var property = properties[prop_arr];
+        parent_element.setAttribute(property[0], property[1]);
+
+    }
+}
+
+
 class create_screen {
     
     constructor (CONFIG, UUID, IP) {
-        
+
         //var UUID = "C8:C9:A3:CE:91:A8";
         //var IP = "192.168.0.24";
         
-        //var CONFIG = JSON.parse("{\"name\":\"TestDevice\",\"digital_inputs\":[19,0,27,14],\"digital_measurements\":{},\"analog_measurements\":{\"33\":{\"name\":\"temp\",\"max\":\"100\",\"min\":\"-20\",\"unit\":\"C\",\"type\":\"line_graph\"},\"35\":{\"name\":\"temp2\",\"max\":\"120\",\"min\":\"-10\",\"unit\":\"m/s\",\"type\":\"line_graph\"}},\"readings\":[\"program_output\"]}");
-        
-        //var CONFIG = JSON.parse("{\"name\":\"TestDevice\",\"digital_inputs\":[19,0,27,14],\"digital_measurements\":{\"12\":{\"name\":\"status_led\",\"type\":\"output\"},\"17\":{\"name\":\"status_led\",\"type\":\"switch\"},\"18\":{\"name\":\"status_led2\",\"type\":\"switch\"}},\"analog_measurements\":{\"33\":{\"name\":\"temp\",\"max\":\"100\",\"min\":\"-20\",\"unit\":\"C\",\"type\":\"pie\"},\"35\":{\"name\":\"temp2\",\"max\":\"120\",\"min\":\"-10\",\"unit\":\"m/s\",\"type\":\"bar_graph\"}},\"readings\":[\"program_output\"]}");
-        
-        //var CONFIG = JSON.parse("{\"name\":\"Bars\",\"digital_inputs\":[19,0,27,14],\"digital_measurements\":{\"12\":{\"name\":\"status_led1\",\"type\":\"switch\"},\"13\":{\"name\":\"status_led2\",\"type\":\"switch\"},\"14\":{\"name\":\"status_led3\",\"type\":\"switch\"},\"15\":{\"name\":\"status_led4\",\"type\":\"switch\"},\"16\":{\"name\":\"status_led5\",\"type\":\"switch\"},\"17\":{\"name\":\"status_led6\",\"type\":\"switch\"}},\"analog_measurements\":{\"35\":{\"name\":\"Temp\",\"max\":\"120\",\"min\":\"-10\",\"unit\":\"C\",\"type\":\"bar-graph\"}},\"readings\":[\"program_output\"]}");
-        
-        console.log(CONFIG);
-        
-        this.config = CONFIG
+        /*var CONFIG = {
+            "name": "ESP-32",
+
+            "digital_inputs": [],
+
+            "digital_measurements": {
+
+            },
+            "analog_measurements": {
+                "io-32": {
+                    "name": "temp",
+                    "max": "100",
+                    "min": "-20",
+                    "unit": "C",
+                    "type": "bar_graph"
+                },
+                "io-33": {
+                    "name": "temp2",
+                    "max": "100",
+                    "min": "-20",
+                    "unit": "C",
+                    "type": "pie"
+                }
+            }
+
+        };*/
+     
+        this.config = CONFIG;
         this.uuid = UUID;
         this.ip = IP;
-        
-        // Create main screen
+
+        // Create main screen.
         this.screen = document.createElement("screen");
         this.screen.setAttribute("id", this.uuid);
-        
-        // Create banner
+
+        // Create banner.
         this.banner = document.createElement("banner");
         this.banner.setAttribute("id", this.uuid + "-banner");
-        
-        // Create nickname
+
+        // Create nickname.
         this.name = document.createElement("nickname");
         this.name.setAttribute("class", "banner_object noselect");
         this.name.setAttribute("onclick", "screens['" + this.uuid + "'].toggle_device_config()");
         this.name.textContent = this.config["name"];
-        
-        // Create ip
+
+        // Create ip.
         this.screen_ip = document.createElement("ip");
         this.screen_ip.setAttribute("class", "banner_object noselect");
         this.screen_ip.textContent = this.ip;
-        
-        // Create status
+
+        // Create status.
         this.status = document.createElement("status");
 
-        // Create device config
-
+        // Create device config.
         this.device_config = document.createElement("device_config");
         this.device_config.setAttribute("id", this.uuid + "-device_config");
-        this.device_config.setAttribute("contenteditable", "true");
         this.device_config_pre = document.createElement("pre");
-        this.device_config_pre.setAttribute("style", 'style="font-family: \'Cutive Mono\', monospace;"');
+        this.device_config_pre.setAttribute("contenteditable", "true");
+        this.device_config_send = document.createElement("device_config_send");
+        this.device_config_send.setAttribute("class", "noselect")
+        this.device_config_send.setAttribute("onclick", "screens['" + this.uuid + "'].send_device_config()");
+        this.device_config_send.innerHTML = "Send to device";
         this.dev_conf_open = false;
-        
-        // Create screen content
+
+        // Create screen content.
         this.screen_content = document.createElement("screen_content");
 
+        // Append everything together.
         this.banner.appendChild(this.name);
         this.banner.appendChild(this.screen_ip);
         this.banner.appendChild(this.status);
         this.screen.appendChild(this.banner);
         this.device_config.appendChild(this.device_config_pre);
+        this.device_config.appendChild(this.device_config_send);
         this.screen.appendChild(this.device_config);
         this.screen.appendChild(this.screen_content);
-        
-        // Dictionary that holds all the panels
+
+        // Define the panel array.
         this.panels = {
             switch : null,
             output : null,
-            bar_graph : null,
             bar : null,
+            bar_graph : null,
             pie : null,
             line_graph : null
-        };
-        
-        this.special = {
-            line_graph : {}
         }
-        
-        // ========== DISPLAY CREATION ========== //
-        
-        // Join analog and digital measurements together so they can be itterated through in one go
+
+        // ===== PANEL CREATION ===== //
+
         var joint_dict = {...this.config["analog_measurements"], ...this.config["digital_measurements"]}
-        
+
         Object.keys(joint_dict).forEach(key => {
-            
-            // Get the sub dict info for each gpio
+
+            // Get the sub dictionary for each measure.
             var measure = joint_dict[key];
-            
-            // Get the info about the gpio
+
+            // Get the info about the measure.
             var io = key;
             var name = measure["name"];
             var type = measure["type"];
             var id = this.uuid + "-" + io;
-            
+
+            // If the panel doesnt exist, create it.
+            if (!this.panels[type]) {
+                this.panels[type] = document.createElement(this.uuid + "_" + type + "_measurement_panel");
+                this.panels[type].setAttribute("class", "panel");
+            }
+
             // If the gpio is in the analog measurements array, calculate grad and get the units.
             if (key in this.config["analog_measurements"]) {
                 var unit = measure["unit"];
-                var grad = (parseFloat(measure["min"]) - parseFloat(measure["max"])) / (-analog_measurement_limit);
-                this.config["analog_measurements"][key]["grad"] = grad;
+                var max = parseFloat(measure["max"]);
+                var min = parseFloat(measure["min"]);
+                var grad = (min - max) / (-analog_measurement_limit);
             }
             
-            // If the type is a bar_graph add a 10 digita array to graph_values key
-            if (type == "bar_graph") {
-                this.config["analog_measurements"][key]["graph_values"] = new Array(default_array_length).fill(0);
-            }
-            
-            // If the panel type doesnt exist then create it
-            if (!this.panels[type]) {
-                this.panels[type] = document.createElement(type + "_measurement_panel");
-                this.panels[type].setAttribute("class", "panel");
-            }
-            
-            // Start with an empty panel element string, go through the switch case
-            // statement and add strings to this.
-            var panel_element = null;
-            
+            // Go through the measurements and create the elements.
             switch (type) {
-                    
-                case "switch" :
-                    //console.log("DEBUG : switch", type);
-                    panel_element = '<switch_container><switch_label class="label">' + name + '</switch_label><switch id="' + id + '-switch" onclick="screens[&quot;' + this.uuid + '&quot;].toggle_switch(&quot;' + io + '&quot;)"><switch_toggler id="' + id + '-switch-toggle"></switch_toggler></switch></switch_container>';
-                    break;
-                    
-                case "output" :
-                    //console.log("DEBUG : output", type);
-                    panel_element = '<output_container><output_label class="label">' + name + '</output_label><output id="' + id + '-output"></output></output_container>';
-                    break;
-                    
-                case "pie" :
-                    //console.log("DEBUG : pie", type);
-                    panel_element = '<pie_chart id="' + id + '-pie"><svg height="200px" width="200px" viewBox="0 0 20 20"><circle r="10" cx="10" cy="10" fill="#404E4D"/><circle id="' + id + '-wedge" r="5" cx="10" cy="10" fill="#404E4D" stroke="tomato" stroke-width="10" stroke-dasharray="0 31.42" transform="rotate(-90) translate(-20)"/><circle r="2" cx="10" cy="10" fill="white"/><text id="' + id + '-pie-percentage" x="10" y="10.8" text-anchor="middle" font-size="2" font-family="poppins" fill="black">0</text></svg><pie_label class="label">' + name + ' [' + unit + ']</pie_label></pie_chart>';
-                    break;
-                    
-                case "bar" :
-                    //console.log("DEBUG : bar", type);
-                    panel_element = '<analog_container><analog_label class="label">' + name + ' [' + unit + ']</analog_label><bar_container><bar id="' + id + '-bar"><bar_value id="' + id + '-bar-value" class="noselect">0</bar_value></bar></bar_container></analog_container>';
-                    break;
-                    
-                case "bar_graph" :
-                    //console.log("DEBUG : bar_graph",type);
-                    panel_element = '<analog_graph_container id="' + id + '-bar_graph"><graph_label class="graph_label">' + name + ' [' + unit + ']</graph_label><graph>';
-                    
-                    for (var bar = 0; bar < 10; bar++) {
-                        var bar_element = '<bar_graph_bar id="' + id + '-graph_bar-' + bar + '"><bar_graph_value id="' + id + '-graph_bar_value-' + bar + '">0</bar_graph_value></bar_graph_bar>';
-                        panel_element = panel_element + bar_element;
-                    }
 
-                    panel_element = panel_element + '</graph></analog_graph_container>';
+                case "switch" :
+                    console.log("Creating switch element.");
+                    this.panels["switch"][io] = new create_switch(this.panels["switch"], this.uuid, io, name);
                     break;
-                    
+
+                case "output" :
+                    console.log("Creating output element");
+                    this.panels["output"][io] = new create_output(this.panels["output"], this.uuid, io, name);
+                    break;
+
+                case "pie" :
+                    console.log("Creating pie element");
+                    this.panels["pie"][io] = new create_pie(this.panels["pie"], this.uuid, io, name, unit, max, min, grad);
+                    break;
+
+                case "bar" :
+                    console.log("Creating bar element");
+                    this.panels["bar"][io] = new create_bar(this.panels["bar"], this.uuid, io, name, unit, max, min, grad);
+                    break;
+
+                case "bar_graph" :
+                    console.log("Creating bar_graph element");
+                    this.panels["bar_graph"][io] = new create_bar_graph(this.panels["bar_graph"], this.uuid, io, name, unit, max, min, grad);
+                    break;
+
                 case "line_graph" :
-                    //console.log("DEBUG : line_graph", type);
-                    this.special["line_graph"][key] = null;
-                    panel_element = '<analog_graph_container id="' + id + '-line_graph"><graph_label class="graph_label">' + name + ' [' + unit + ']</graph_label><graph id="' + id + '-line_graph-svg-container"></graph></analog_graph_container>'
-                    break;
-                    
+                    console.log("creating line_graph element");
+                    this.panels["line_graph"][io] = new create_line_graph(this.panels["line_graph"], this.uuid, io, name, unit, max, min, grad);
+
                 default :
-                    console.log("unrecognised");
-                    
+                    console.log("Unrecognised element : " + type);
+
             }
-            
-            // Add panel element string to the panel of its type.
-            this.panels[type].insertAdjacentHTML("beforeend", panel_element);
-            
+
         });
-        
+
         // ========== ADD PANELS TO SCREEN ========== //
         
         Object.keys(this.panels).forEach(key => {
@@ -218,77 +232,41 @@ class create_screen {
             }
             
         });
-        
+
         // ==================================== //
-        
-        document.getElementById("dashboard").appendChild(this.screen);
 
-        // ========== CREATION OF LINE GRAPH SVG ========== //
-        
-        Object.keys(this.special["line_graph"]).forEach(key => {
-
-            // Must be done after the html elements are present.
-            var conf = this.config["analog_measurements"][key];
-            var id = CSS.escape(this.uuid + "-" + key + "-line_graph-svg-container");
-            this.special["line_graph"][key] = new line_graph(`#${id}`, "lg-" + key, conf);
-            
-        });
-
-        // finally add the config to the device config panel.
         this.device_config_pre.textContent = JSON.stringify(this.config, null, 1);
+        document.getElementById("dashboard").appendChild(this.screen);
         
     }
-    
-    
-    panel_query_selector (type, identification) {
-        // Go through the panel type specified and find an element.
-        return this.panels[type].querySelector(`#${CSS.escape(this.uuid + "-" + identification)}`);
-    }
-    
-    
-    calculate_analog_values (gpio, value) {
-        // Get and calculate values for analog gpios
-        if (this.config["analog_measurements"][gpio]) {
-            
-            var parameters = this.config["analog_measurements"][gpio];
-            
-            var percentage = Math.round(value * 100 / analog_measurement_limit);
-            var colour = colours[Math.floor(percentage / 25)];
-            var grad = parseFloat(parameters["grad"]);
-            var adjusted_value = Math.round((grad * value) + parseFloat(parameters["min"]));
-            
-            return { percentage, adjusted_value, colour};
-            
-        }
-    }
 
 
-    toggle_device_config () {
-        // Open or close the device config panel
-        if (this.dev_conf_open) {
-            this.device_config.style.height = "0px";
-            this.device_config.style.width = "0px";
+    send_device_config () {
+        // Send the parsed json device config to the device.
 
-            var dev_conf = JSON.parse(this.device_config_pre.innerText);
+        var config = this.device_config_pre.innerText;
 
-            var new_config = JSON.stringify({
+        try {
 
-                'set_config' : dev_conf,
-                'UUID' : this.uuid,
-                'IP' : this.ip,
+            var config_to_send = JSON.parse(config);
 
-            });
-
-            if (JSON.stringify(dev_conf) == JSON.stringify(this.config)) {
-                console.log("Config is the same");
-
+            if (JSON.stringify(config_to_send) === JSON.stringify(this.config)) {
+                // If the json can be parsed but nothings changed then do nothing.
+                this.device_config_send.innerText = "No Change in JSON";
             } else {
-                console.log("Config has changed, sending new config to " + this.uuid + "...");
 
-                //console.log(this.config);
-                //console.log(JSON.parse(new_config));
-                
+                // If the json can be parsed and it is new, send it to the device
+                this.device_config_send.innerText = "Sending...";
+
                 this.screen.style.animation = "screen_deletion 0.3s forwards";
+
+                var new_config = JSON.stringify({
+
+                    'set_config' : config_to_send,
+                    'UUID' : this.uuid,
+                    'IP' : this.ip,
+    
+                });
 
                 setTimeout(() => {
 
@@ -298,65 +276,332 @@ class create_screen {
 
                 }, 310);
 
+                console.log(new_config);
             }
+
+        } catch (error) {
+            // Do this when theres an error in the json.
+
+            console.log("Couldnt parse json for device :", this.config["name"], "\n\nHeres the error encountered : \n", error);
+
+            this.device_config_send.innerText = "Error in config";
+            this.device_config_pre.style.animation = "device_config_error 1s forwards";
+
+        }
+
+        setTimeout(() => {this.device_config_pre.style.animation = "none"}, 1000);
+
+    }
+
+
+    toggle_device_config () {
+        // Open or close the device config panel
+        if (this.dev_conf_open) {
+            this.device_config.style.height = "0px";
+            this.device_config.style.width = "0px";
 
             this.dev_conf_open = false;
 
         } else {
-            this.device_config.style.height = this.device_config.scrollHeight + "px";
+            this.device_config.style.height = (this.device_config.scrollHeight) + "px";
             this.device_config.style.width = "100%";
+
             this.dev_conf_open = true;
 
         }
 
     }
+
+
+    disconnected () {
+        this.status.style.animation = "status_disconnected 0.3s infinite";
+    }
     
     
-    toggle_switch (gpio) {
-        // Send toggle message for gpio switch
-        var gpio = gpio.substring(3);
+    connected () {
+        this.status.style.animation = "status_connected 1s infinite";
+    }
+}
+
+
+class create_element_parameters {
+
+    constructor (parent_container, uuid, gpio, name) {
+
+        this.parent_object = parent_container;
+        this.uuid = uuid;
+        this.io = gpio;
+        this.name = name;
+
+        this.id = uuid + "-" + gpio;
+
+    }
+
+}
+
+
+class create_analog_element_parameters extends create_element_parameters {
+
+    constructor (parent_object, uuid, gpio, name, unit, max, min, grad) {
+        super(parent_object, uuid, gpio, name);
+
+        this.unit = unit;
+        this.max = max;
+        this.min = min;
+        this.grad = grad;
+
+    }
+
+
+    calculate_analog_values (value, grad, min) {
+
+        var percentage;
+
+        if ( value <= analog_measurement_limit ) {
+            percentage = Math.abs(Math.round(value * 100 / analog_measurement_limit));
+        } else {
+            percentage = 100;
+        }
+
+        var colour = colours[Math.floor(percentage / 25)];
+        var adjusted = Math.round((grad * value) + min);
+
+        return { percentage, colour, adjusted };
+
+    }
+
+}
+
+
+class create_switch extends create_element_parameters {
+
+    constructor (parent_container, uuid, gpio, name) {
+        super(parent_container, uuid, gpio, name);
+
+        // Create switch container.
+        this.switch_container = document.createElement("switch_container");
+        
+        // Create switch label.
+        this.switch_label = document.createElement("switch_label");
+        this.switch_label.setAttribute("class", "label")
+        this.switch_label.innerText = this.name;
+        
+        // Create switch body.
+        this.switch = document.createElement("switch");
+        this.switch.setAttribute("onclick", "screens['" + this.uuid + "'].panels['switch']['" + this.io + "'].toggle_switch()");
+
+        // Create switch toggler.
+        this.switch_toggler = document.createElement("switch_toggler");
+
+        this.switch_container.appendChild(this.switch_label);
+        this.switch.appendChild(this.switch_toggler);
+        this.switch_container.appendChild(this.switch);
+        this.parent_object.appendChild(this.switch_container);
+
+    }
+
+
+    toggle_switch () {
+        // Send toggle message for gpio switch.
+        var gpio = this.io.substring(3);
         var message = JSON.stringify({"gpio":gpio,"target":this.uuid});
         ws.send(message);
     }
     
-    
-    digital_switch (gpio, state) {
-        // Compute state of sent switch information
-        var switch_element = this.panel_query_selector("switch", gpio + "-switch");
-        var switch_toggler = this.panel_query_selector("switch", gpio + "-switch-toggle");
-        
+
+    colour_switch (state) {
+        // Change colour of switch and move toggler.
         if (!state) {
-            switch_element.style.background = red;
-            switch_toggler.style.marginLeft = '1px';
+            this.switch.style.background = red;
+            this.switch_toggler.style.marginLeft = '1px';
         } else {
-            switch_element.style.background = green;
-            switch_toggler.style.marginLeft = '41px';
+            this.switch.style.background = green;
+            this.switch_toggler.style.marginLeft = '41px';
         }
     }
-    
-    
-    digital_output (gpio, state) {
-        // Compute state of sent output information
-        var output_element = this.panel_query_selector("output", gpio + "-output");
-        
+
+}
+
+
+class create_output extends create_element_parameters {
+
+    constructor (parent_container, uuid, gpio, name) {
+        super(parent_container, uuid, gpio, name);
+
+        // Create ouput container.
+        this.output_container = document.createElement("output_container");
+
+        //Create output label.
+        this.output_label = document.createElement("output_label")
+        this.output_label.setAttribute("class", "label");
+        this.output_label.innerText = this.name;
+
+        //Create output.
+        this.output = document.createElement("output");
+
+        this.output_container.appendChild(this.output_label);
+        this.output_container.appendChild(this.output);
+        this.parent_object.appendChild(this.output_container);
+
+    }
+
+
+    colour_output (state) {
+        // Compute state of sent output information.
         if (!state) {
-            output_element.style.background = red;
+            this.output.style.background = red;
         } else {
-            output_element.style.background = green;
+            this.output.style.background = green;
         }
     }
-    
-    
-    analog_bar (gpio, value) {
-        // Compute analog bar size and colour
-        var bar_element = this.panel_query_selector("bar", gpio + "-bar");
-        var bar_value_element = this.panel_query_selector("bar", gpio + "-bar-value");
+
+}
+
+
+class create_pie extends create_analog_element_parameters {
+
+    constructor (parent_object, uuid, gpio, name, unit, max, min, grad) {
+        super(parent_object, uuid, gpio, name, unit, max, min, grad);
+
+        this.pie_width = "200px";
+        this.pie_rad = "10"
+            
+        // Create pie chart container.
+        this.pie_chart = document.createElement("pie_chart");
+        this.pie_chart.setAttribute("id", this.id + "-pie");
+
+        // Create pie svg.
+        this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        var svg_properties = [
+            ["height", this.pie_width],
+            ["width", this.pie_width],
+            ["viewBox", "0 0 20 20"]
+        ];
+        set_attributes(this.svg, svg_properties);
+
+        // Create circle background.
+        this.circle_bg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        var circle_bg_properties = [
+            ["r", this.pie_rad],
+            ["cx", this.pie_rad],
+            ["cy", this.pie_rad],
+            ["fill", "#404E4D"]
+        ];
+        set_attributes(this.circle_bg, circle_bg_properties);
+
+        // Create wedge.
+        this.wedge = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        var wedge_properties = [
+            ["r", "5"],
+            ["cx", this.pie_rad],
+            ["cy", this.pie_rad],
+            ["fill", "#404E4D"],
+            ["stroke", "tomato"],
+            ["stroke-width", this.pie_rad],
+            ["stroke-dasharray", "0 31.42"],
+            ["transform", "rotate(-90) translate(-20)"]
+        ];
+        set_attributes(this.wedge, wedge_properties)
+
+        // Create svg text circle.
+        this.text_circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        var text_circle_properties = [
+            ["r", "2"],
+            ["cx", this.pie_rad],
+            ["cy", this.pie_rad],
+            ["fill", "white"]
+        ];
+        set_attributes(this.text_circle, text_circle_properties);
+
+        // Create svg text.
+        this.svg_text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        var svg_text_properties = [
+            ["x", "10"],
+            ["y", "10.8"],
+            ["text-anchor", "middle"],
+            ["font-size", "2"],
+            ["font-family", "poppins"],
+            ["fill", "black"]
+        ];
+        set_attributes(this.svg_text, svg_text_properties);
+        this.svg_text.innerHTML = this.min;
+
+        // Create pie label.
+        this.pie_label = document.createElement("pie_label");
+        this.pie_label.setAttribute("class", "label");
+        this.pie_label.innerText = this.name + "[" + this.unit + "]";
+
+        // Append childs to svg
+        this.svg.appendChild(this.circle_bg);
+        this.svg.appendChild(this.wedge);
+        this.svg.appendChild(this.text_circle);
+        this.svg.appendChild(this.svg_text);
+
+        // Append childs to pie_chart
+        this.pie_chart.appendChild(this.svg);
+        this.pie_chart.appendChild(this.pie_label);
+
+        // Append pie_chart to parent_object
+        this.parent_object.appendChild(this.pie_chart);
+
+    }
+
+
+    update_pie (value) {
+        // Update analog pie percentage and colour.
+        var { percentage, adjusted, colour } = this.calculate_analog_values(value, this.grad, this.min);
         
-        var { percentage, adjusted_value, colour } = this.calculate_analog_values(gpio, value);
+        this.wedge.style.strokeDasharray = (percentage * 0.3142) + " 31.42";
+        this.wedge.style.stroke = colour;
+        this.svg_text.innerHTML = adjusted;
         
-        bar_element.style.width = percentage + "%";
-        bar_element.style.background = colour;
-        bar_value_element.innerHTML = adjusted_value;
+    }
+
+}
+
+
+class create_bar extends create_analog_element_parameters {
+
+    constructor (parent_object, uuid, gpio, name, unit, max, min, grad) {
+        super(parent_object, uuid, gpio, name, unit, max, min, grad);
+
+        // Create analog container.
+        this.analog_container = document.createElement("analog_container");
+
+        // Create bar label
+        this.label = document.createElement("analog_label");
+        this.label.setAttribute("class", "label");
+        this.label.innerHTML = this.name + "[" + this.unit + "]";
+
+        // Create bar container.
+        this.bar_container = document.createElement("bar_container");
+
+        // Create bar.
+        this.bar = document.createElement("bar");
+
+        // Create bar value.
+        this.bar_value = document.createElement("bar_value");
+        this.bar_value.innerHTML = this.min;
+
+        // Append childs to analog container.
+        this.bar.appendChild(this.bar_value);
+        this.bar_container.appendChild(this.bar);
+        this.analog_container.appendChild(this.bar_container);
+        this.analog_container.appendChild(this.label);
+
+        // Append analog_contaienr to parent_object.
+        this.parent_object.appendChild(this.analog_container);
+
+    }
+
+
+    update_bar (value) {
+        // Update analog bar percentage and colour.
+        var { percentage, adjusted, colour } = this.calculate_analog_values(value, this.grad, this.min);
+        
+        this.bar.style.width = percentage + "%";
+        this.bar.style.background = colour;
+        this.bar_value.innerHTML = adjusted;
         
         var offset;
         
@@ -366,97 +611,114 @@ class create_screen {
             offset = -8;
         }
         
-        bar_value_element.style.left = offset + "px";
-        
-    }
-    
-    
-    analog_pie (gpio, value) {
-        // Compute analog pie percentage and colour
-        var { percentage, adjusted_value, colour } = this.calculate_analog_values(gpio, value);
-        var pie_wedge = this.panel_query_selector("pie", gpio + "-wedge");
-        var pie_value = this.panel_query_selector("pie", gpio + "-pie-percentage");
-        
-        pie_wedge.style.strokeDasharray = (percentage * 0.3142) + " 31.42";
-        pie_wedge.style.stroke = colour;
-        pie_value.innerHTML = adjusted_value;
-        
-    }
-    
-    
-    analog_bar_graph (gpio, value) {
-        
-        value = Math.abs(value)
-        
-        var graph_info = this.config["analog_measurements"][gpio]
-        
-        graph_info["graph_values"].shift();
-        graph_info["graph_values"].push(value);
-        
-        var maximum = Math.max(...graph_info["graph_values"]);
-        if (maximum == 0) {
-            var scale = 0;
-        } else {
-            var scale = 100 / maximum;
-        }
-        
-        var grad = graph_info["grad"];
-        var min = parseFloat(graph_info["min"]);
-        
-        var scaled_values = graph_info["graph_values"].map(val => Math.abs(val * scale));
-        var display_values = graph_info["graph_values"].map(val => Math.floor(grad * val + min));
-        
-        for (var bar = 0; bar < scaled_values.length; bar++) {
-            
-            var graph_bar = this.panel_query_selector("bar_graph", gpio + "-graph_bar-" + bar);
-            var colour = colours[Math.floor(scaled_values[bar]/25.1)];
-            
-            graph_bar.style.background = colour;
-            graph_bar.style.height = scaled_values[bar] + "%";
-            graph_bar.style.border = "2px solid " + colour;
-            
-            var offset = (0.49 * scaled_values[bar]) - 44;
-            
-            var graph_bar_value = this.panel_query_selector("bar_graph", gpio + "-graph_bar_value-" + bar);
-            graph_bar_value.style.marginTop = offset + "px";
-            graph_bar_value.innerHTML = display_values[bar];
-            
-        }
+        this.bar_value.style.left = offset + "px";
         
     }
 
-
-    analog_line_graph (gpio, value) {
-        this.special["line_graph"][gpio].updateData(value);
-    }
-    
-    
-    disconnected () {
-        this.status.style.animation = "status_disconnected 0.3s infinite";
-    }
-    
-    
-    connected () {
-        this.status.style.animation = "status_connected 1s infinite";
-    }
-    
 }
 
 
-class line_graph {
-    
-    constructor (container, id, config, width = 500, height = 300) {
+class create_bar_graph extends create_analog_element_parameters {
 
-        this.max = parseFloat(config["max"]);
-        this.min = parseFloat(config["min"]);
-        this.grad = config["grad"];
+    constructor (parent_object, uuid, gpio, name, unit, max, min, grad) {
+        super(parent_object, uuid, gpio, name, unit, max, min, grad);
+
+        // Create analog_graph_container.
+        this.analog_graph_container = document.createElement("analog_graph_container");
+
+        // Create graph_label.
+        this.graph_label = document.createElement("graph_label");
+        this.graph_label.setAttribute("class", "graph_label");
+        this.graph_label.innerHTML = this.name + "[" + this.unit + "]";
+
+        // Create graph.
+        this.graph = document.createElement("graph");
+
+        // Create array to append html bar object and bar label too.
+        this.bar_array = [];
+
+        // Create array to store measurement values
+        this.data = new Array(default_bar_graph_length).fill(0);
+
+        // Create bars and append them to the graph and the bar_array.
+        for ( var bar_num = 0; bar_num < default_array_length; bar_num++ ) {
+            var bar = document.createElement("bar_graph_bar");
+            var bar_label = document.createElement("bar_graph_value");
+            bar_label.innerHTML = this.min;
+
+            bar.appendChild(bar_label);
+
+            this.bar_array.push([bar, bar_label]);
+            this.graph.appendChild(bar);
+        }
+
+        // Append childs to the analog graph container.
+        this.analog_graph_container.appendChild(this.graph_label);
+        this.analog_graph_container.appendChild(this.graph);
+
+        // Append childs to the parent_object.
+        this.parent_object.appendChild(this.analog_graph_container);
         
-        this.width = width;
-        this.height = height;
-        this.margin = { top: 10, right: 10, bottom: 10, left: 40 }
-        this.data = Array(10).fill(0);
+    }
+
+
+    update_bar_graph (value) {
         
-        this.svg = d3.select(container).append("svg").attr("id", id).attr("width", this.width).attr("height", this.height);
+        this.data.shift();
+        this.data.push(value);
+        
+        for (var bar = 0; bar < this.data.length; bar++) {
+            
+            var bar_element = this.bar_array[bar][0];
+            var bar_label = this.bar_array[bar][1];
+            var bar_measurement = this.data[bar];
+
+            var { percentage, adjusted, colour } = this.calculate_analog_values(bar_measurement, this.grad, this.min);
+
+            // Update bar element.
+            bar_element.style.height = percentage + "%";
+            bar_element.style.background = colour;
+            bar_element.style.border = "2px solid " + colour;
+
+            // Update bar label element.
+            var offset = (0.49 * percentage) - 44;
+            bar_label.style.marginTop = offset + "px";
+            bar_label.innerHTML = adjusted;
+            
+        }
+        
+    }
+
+}
+
+
+class create_line_graph extends create_analog_element_parameters {
+    
+    constructor (parent_object, uuid, gpio, name, unit, max, min, grad) {
+        super(parent_object, uuid, gpio, name, unit, max, min, grad);
+
+        // Create analog graph container.
+        this.analog_graph_container = document.createElement("analog_graph_container");
+
+        // Create graph label.
+        this.graph_label = document.createElement("graph_label");
+        this.graph_label.setAttribute("class", "graph_label");
+        this.graph_label.innerHTML = this.name + "[" + this.unit + "]";
+
+        // Create element that holds svg graph.
+        this.graph = document.createElement("graph")
+
+        // Append childs to analog_graph_container.
+        this.analog_graph_container.appendChild(this.graph_label);
+        this.analog_graph_container.appendChild(this.graph);
+        
+        this.width = 500;
+        this.height = 250;
+        this.margin = { top: 4, right: 6, bottom: 4, left: 40 }
+        this.data = Array(default_line_graph_length).fill(0);
+
+        // Create svg graph and add it to the graph element
+        this.svg = d3.select(this.graph).append("svg").attr("width", this.width).attr("height", this.height);
         this.g = this.svg.append("g").attr("transform", `translate(${this.margin.left},${this.margin.top})`);
         
         this.x = d3.scaleLinear().domain([0, (this.data.length - 1)]).range([0, this.width - this.margin.left - this.margin.right]);
@@ -469,45 +731,44 @@ class line_graph {
         this.circleGroup = this.g.append("g");
         this.circles = this.circleGroup.selectAll(".circle").data(this.data).enter().append("circle").attr("class", "circle").attr("r", 4).attr("cx", (d, i) => this.x(i)).attr("cy", d => this.y(d)).style("opacity", 1);
         
+        this.parent_object.appendChild(this.analog_graph_container);
     }
 
+
+    update_line_graph(value) {
+        var adjusted = (this.grad * value) + this.min;
     
-    updateCircles(data) {
-        this.circles.data(data)
-          .transition()
-          .duration(300)
-          .attr("cx", (d, i) => this.x(i))
-          .attr("cy", d => this.y(d));
-
-        this.circles.exit().remove();
-    }
-
-
-    updateData(value) {
-        
-        var value = (this.grad * value) + this.min;
-
         this.data.shift();
-        this.data.push(value);
-
-        // Update the y scale domain based on the new data range
+        this.data.push(adjusted);
+    
+        // Update the y scale domain based on the new data range.
         const yExtent = d3.extent(this.data);
-        this.y = d3.scaleLinear().domain([yExtent[0] - 10, yExtent[1] + 10]).range([this.height - this.margin.top - this.margin.bottom, 0]); // Update y scale
-
-        // Update the y-axis with transition
+        this.y.domain([yExtent[0] - 10, yExtent[1] + 10]);
+    
+        // Update the y-axis with transition.
         this.yAxis.transition().duration(300).call(d3.axisLeft(this.y));
-
-        // Update the line path with the new data
+    
+        // Update the line path with the new data.
         this.path.datum(this.data)
-          .transition()
-          .duration(300)
-          .attr("d", this.line);
-
-        // Update the circles with the new data
-        this.updateCircles(this.data);
+            .transition()
+            .duration(300)
+            .attr("d", this.line);
+    
+        // Update the circles with the new data.
+        this.circles = this.circleGroup.selectAll(".circle").data(this.data);
+    
+        // Exit any old circles.
+        this.circles.exit().remove();
+    
+        // Enter and update existing circles.
+        this.circles.enter().append("circle")
+            .attr("class", "circle")
+            .attr("r", 4)
+            .merge(this.circles)
+            .transition()
+            .duration(300)
+            .attr("cx", (d, i) => this.x(i))
+            .attr("cy", d => this.y(d));
     }
     
 }
-
-
-

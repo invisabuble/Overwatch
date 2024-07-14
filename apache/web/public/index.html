@@ -25,7 +25,7 @@
 
             <server_status>
 
-                <icon>
+                <icon id="icon">
                 
                     <svg viewBox="0 0 48 48">
                     <defs></defs>
@@ -112,8 +112,8 @@
     <script>
 
         // Get the origin address of the host
-        var host_addr = window.location.origin;
-        //var host_addr = "http://192.168.0.33"
+        //var host_addr = window.location.origin;
+        var host_addr = "http://192.168.0.33"
         var host_status = document.getElementById("server_status");
 
         // Removes http:// or https:// from the origin so it can be used.
@@ -136,8 +136,6 @@
             
             data = JSON.parse(event.data);
             
-            //console.log(data);
-
             if (data["ssl_cert"]) {
 
                 let certContent = data["ssl_cert"].trim();
@@ -179,29 +177,31 @@
 
                         var gpio = Object.keys(measurements[measurement]);
                         var value = measurements[measurement][gpio];
+
+                        //console.log(gpio, value)
                         
-                        if ((scr.panels.switch) && (scr.panels.switch.querySelector(`#${CSS.escape(uuid + "-" + gpio + "-switch")}`))) {
-                            scr.digital_switch(gpio, value);
+                        if ((scr.panels.switch) && (scr.panels['switch'][gpio])) {
+                            scr.panels['switch'][gpio].colour_switch(value);
                         }
                         
-                        if ((scr.panels.output) && (scr.panels.output.querySelector(`#${CSS.escape(uuid + "-" + gpio + "-output")}`))) {
-                            scr.digital_output(gpio, value);
+                        if ((scr.panels.output) && (scr.panels['output'][gpio])) {
+                            scr.panels['output'][gpio].colour_output(value);
                         }
                         
-                        if ((scr.panels.bar_graph) && (scr.panels.bar_graph.querySelector(`#${CSS.escape(uuid + "-" + gpio + "-bar_graph")}`))) {
-                            scr.analog_bar_graph(gpio, value);
+                        if ((scr.panels.bar_graph) && (scr.panels['bar_graph'][gpio])) {
+                            scr.panels['bar_graph'][gpio].update_bar_graph(value);
                         }
                         
-                        if ((scr.panels.bar) && (scr.panels.bar.querySelector(`#${CSS.escape(uuid + "-" + gpio + "-bar")}`))) {
-                            scr.analog_bar(gpio, value);
+                        if ((scr.panels.bar) && (scr.panels['bar'][gpio])) {
+                            scr.panels['bar'][gpio].update_bar(value);
                         }
                         
-                        if ((scr.panels.pie) && (scr.panels.pie.querySelector(`#${CSS.escape(uuid + "-" + gpio + "-pie")}`))) {
-                            scr.analog_pie(gpio, value);
+                        if ((scr.panels.pie) && (scr.panels['pie'][gpio])) {
+                            scr.panels['pie'][gpio].update_pie(value);
                         }
 
-                        if ((scr.panels.line_graph) && (scr.special["line_graph"][gpio])) {
-                            scr.special["line_graph"][gpio].updateData(value);
+                        if ((scr.panels.line_graph) && (scr.panels['line_graph'][gpio])) {
+                            scr.panels['line_graph'][gpio].update_line_graph(value);
                         }
                         
                     }
@@ -215,6 +215,8 @@
             } catch (error) {
                 
                 var warning = "Couldn't parse JSON from " + ip + ". Mistake in config.h";
+
+                console.log(error);
                 
                 if (data["ping_network"]) {
                     console.log("New console connection established.");
@@ -225,7 +227,7 @@
                 document.getElementById("warning_text").innerHTML = warning;
                 host_status.style.animation = "status_disconnected 0.3s infinite";
                 
-            } 
+            }
 
         };
 
@@ -241,7 +243,7 @@
 
         let isExpanded = false;
 
-        header.addEventListener('click', () => {
+        document.getElementById("icon").addEventListener('click', () => {
             if (isExpanded) {
                 header.style.height = '70px';
                 dashboard.style.height = "calc(100% - 90px)";
