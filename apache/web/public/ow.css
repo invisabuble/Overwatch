@@ -435,7 +435,7 @@ analog_graph_container {
 
 .graph_label {
     min-width: 80px;
-    max-width: 120px;
+    max-width: fit-content;
     min-height: 25px;
     max-height: 25px;
     background: rgba(0,0,0,0.2);
@@ -515,7 +515,16 @@ bar_graph_value {
     color: white;
   }
 
+  .tooltip {
+    position: absolute;
+    text-align: center;
+    font: 12px poppins;
+    color: white;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
 /* ========================== */
 
 /* ================================ */
-

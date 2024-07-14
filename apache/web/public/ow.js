@@ -213,8 +213,9 @@ class create_screen {
                     break;
 
                 case "line_graph" :
-                    console.log("creating line_graph element");
+                    console.log("Creating line_graph element");
                     this.panels["line_graph"][io] = new create_line_graph(this.panels["line_graph"], this.uuid, io, name, unit, max, min, grad);
+                    break;
 
                 default :
                     console.log("Unrecognised element : " + type);
@@ -693,7 +694,7 @@ class create_bar_graph extends create_analog_element_parameters {
 
 
 class create_line_graph extends create_analog_element_parameters {
-    
+
     constructor (parent_object, uuid, gpio, name, unit, max, min, grad) {
         super(parent_object, uuid, gpio, name, unit, max, min, grad);
 
@@ -706,69 +707,134 @@ class create_line_graph extends create_analog_element_parameters {
         this.graph_label.innerHTML = this.name + "[" + this.unit + "]";
 
         // Create element that holds svg graph.
-        this.graph = document.createElement("graph")
+        this.graph = document.createElement("graph");
 
         // Append childs to analog_graph_container.
         this.analog_graph_container.appendChild(this.graph_label);
         this.analog_graph_container.appendChild(this.graph);
-        
+
         this.width = 500;
         this.height = 250;
-        this.margin = { top: 4, right: 6, bottom: 4, left: 40 }
+        this.margin = { top: 4, right: 6, bottom: 4, left: 40 };
         this.data = Array(default_line_graph_length).fill(0);
 
         // Create svg graph and add it to the graph element
         this.svg = d3.select(this.graph).append("svg").attr("width", this.width).attr("height", this.height);
         this.g = this.svg.append("g").attr("transform", `translate(${this.margin.left},${this.margin.top})`);
-        
+
         this.x = d3.scaleLinear().domain([0, (this.data.length - 1)]).range([0, this.width - this.margin.left - this.margin.right]);
         this.y = d3.scaleLinear().domain([-100, 100]).range([this.height - this.margin.top - this.margin.bottom, 0]);
-        
+
         this.line = d3.line().curve(d3.curveMonotoneX).x((d, i) => this.x(i)).y(d => this.y(d));
         this.yAxis = this.g.append("g").attr("class", "axis").call(d3.axisLeft(this.y));
         this.path = this.g.append("path").datum(this.data).attr("class", "line").attr("d", this.line);
-        
+
         this.circleGroup = this.g.append("g");
         this.circles = this.circleGroup.selectAll(".circle").data(this.data).enter().append("circle").attr("class", "circle").attr("r", 4).attr("cx", (d, i) => this.x(i)).attr("cy", d => this.y(d)).style("opacity", 1);
-        
-        this.parent_object.appendChild(this.analog_graph_container);
-    }
 
+        this.parent_object.appendChild(this.analog_graph_container);
+
+        // Create tooltip for showing values on hover.
+        this.tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+    }
 
     update_line_graph(value) {
         var adjusted = (this.grad * value) + this.min;
-    
+
         this.data.shift();
         this.data.push(adjusted);
-    
-        // Update the y scale domain based on the new data range.
+
+        // Update the y scale based on the new data range.
         const yExtent = d3.extent(this.data);
         this.y.domain([yExtent[0] - 10, yExtent[1] + 10]);
-    
+
         // Update the y-axis with transition.
         this.yAxis.transition().duration(300).call(d3.axisLeft(this.y));
-    
+
         // Update the line path with the new data.
         this.path.datum(this.data)
             .transition()
             .duration(300)
             .attr("d", this.line);
-    
+
         // Update the circles with the new data.
         this.circles = this.circleGroup.selectAll(".circle").data(this.data);
-    
+
         // Exit any old circles.
         this.circles.exit().remove();
-    
+
         // Enter and update existing circles.
         this.circles.enter().append("circle")
             .attr("class", "circle")
             .attr("r", 4)
             .merge(this.circles)
+            .on("mouseover", (event, d) => {
+                // Scale up the circle
+                d3.select(event.currentTarget)
+                    .transition()
+                    .duration(200)
+                    .attr("r", 5.5);
+
+                // Get the position of the circle.
+                const cx = +d3.select(event.currentTarget).attr("cx");
+                const cy = +d3.select(event.currentTarget).attr("cy");
+
+                // Get the bounding box of the SVG element.
+                const svgBBox = this.svg.node().getBoundingClientRect();
+
+                // Round the data value to zero decimal places.
+                const formattedValue = Math.round(d);
+
+                // Update the tooltip content.
+                this.tooltip.html(formattedValue);
+
+                // Temporarily make the tooltip visible to measure its dimensions.
+                this.tooltip.style("opacity", .9);
+
+                // Measure the width of the tooltip.
+                const tooltipWidth = this.tooltip.node().offsetWidth;
+                const tooltipHeight = this.tooltip.node().offsetHeight;
+
+                // Calculate the position of the tooltip.
+                let tooltipLeft = svgBBox.left + this.margin.left + cx - tooltipWidth / 2;
+                const tooltipTop = svgBBox.top + this.margin.top + cy - tooltipHeight - 10; // Adjust the -10 to position above the circle
+
+                // Ensure the tooltip doesn't go out of the viewport.
+                const viewportWidth = window.innerWidth;
+                if (tooltipLeft < 0) {
+                    tooltipLeft = 0;
+                } else if (tooltipLeft + tooltipWidth > viewportWidth) {
+                    tooltipLeft = viewportWidth - tooltipWidth;
+                }
+
+                // Set the final position of the tooltip.
+                this.tooltip
+                    .style("left", `${tooltipLeft}px`)
+                    .style("top", `${tooltipTop}px`);
+            })
+            .on("mouseout", (event, d) => {
+                // Scale down the circle.
+                d3.select(event.currentTarget)
+                    .transition()
+                    .duration(200)
+                    .attr("r", 4);
+
+                // Hide the tooltip.
+                this.tooltip.transition()
+                    .duration(50)
+                    .style("opacity", 0);
+            })
             .transition()
             .duration(300)
             .attr("cx", (d, i) => this.x(i))
             .attr("cy", d => this.y(d));
-    }
+
+
+
     
+    }
 }
+
+
