@@ -190,6 +190,29 @@ class create_screen {
                 var max = parseFloat(measure["max"]);
                 var min = parseFloat(measure["min"]);
                 var grad = (min - max) / (-analog_measurement_limit);
+
+                var dots;
+
+                if (measure["dots"]) {
+                    dots = parseInt(measure["dots"]);
+                } else {
+
+                    switch (type) {
+
+                        case "line_graph" :
+                            dots = default_line_graph_length;
+                            break;
+
+                        case "bar_graph" :
+                            dots = default_bar_graph_length;
+                            break;
+
+                        default :
+                            dots = 10;
+                    }
+
+                }
+                
             }
             
             // Go through the measurements and create the elements.
@@ -217,12 +240,12 @@ class create_screen {
 
                 case "bar_graph" :
                     console.log("Creating bar_graph element for", this.uuid);
-                    this.panels["bar_graph"][io] = new create_bar_graph(this.panels["bar_graph"], this.uuid, io, name, unit, max, min, grad);
+                    this.panels["bar_graph"][io] = new create_bar_graph(this.panels["bar_graph"], this.uuid, io, name, unit, max, min, grad, dots);
                     break;
 
                 case "line_graph" :
                     console.log("Creating line_graph element for", this.uuid);
-                    this.panels["line_graph"][io] = new create_line_graph(this.panels["line_graph"], this.uuid, io, name, unit, max, min, grad);
+                    this.panels["line_graph"][io] = new create_line_graph(this.panels["line_graph"], this.uuid, io, name, unit, max, min, grad, dots);
                     break;
 
                 default :
@@ -351,7 +374,7 @@ class create_element_parameters {
 
 class create_analog_element_parameters extends create_element_parameters {
 
-    constructor (parent_object, uuid, gpio, name, unit, max, min, grad) {
+    constructor (parent_object, uuid, gpio, name, unit, max, min, grad, dots) {
         super(parent_object, uuid, gpio, name);
 
         this.unit = unit;
@@ -629,8 +652,10 @@ class create_bar extends create_analog_element_parameters {
 
 class create_bar_graph extends create_analog_element_parameters {
 
-    constructor (parent_object, uuid, gpio, name, unit, max, min, grad) {
+    constructor (parent_object, uuid, gpio, name, unit, max, min, grad, dots) {
         super(parent_object, uuid, gpio, name, unit, max, min, grad);
+
+        this.dots = dots;
 
         // Create analog_graph_container.
         this.analog_graph_container = document.createElement("analog_graph_container");
@@ -647,10 +672,10 @@ class create_bar_graph extends create_analog_element_parameters {
         this.bar_array = [];
 
         // Create array to store measurement values
-        this.data = new Array(default_bar_graph_length).fill(0);
+        this.data = new Array(this.dots).fill(0);
 
         // Create bars and append them to the graph and the bar_array.
-        for ( var bar_num = 0; bar_num < default_bar_graph_length; bar_num++ ) {
+        for ( var bar_num = 0; bar_num < this.dots; bar_num++ ) {
             var bar = document.createElement("bar_graph_bar");
             var bar_label = document.createElement("bar_graph_value");
             bar_label.innerHTML = this.min;
@@ -703,8 +728,10 @@ class create_bar_graph extends create_analog_element_parameters {
 
 class create_line_graph extends create_analog_element_parameters {
 
-    constructor (parent_object, uuid, gpio, name, unit, max, min, grad) {
+    constructor (parent_object, uuid, gpio, name, unit, max, min, grad, dots) {
         super(parent_object, uuid, gpio, name, unit, max, min, grad);
+
+        this.dots = dots;
 
         // Create analog graph container.
         this.analog_graph_container = document.createElement("analog_graph_container");
@@ -724,7 +751,7 @@ class create_line_graph extends create_analog_element_parameters {
         this.width = 500;
         this.height = 250;
         this.margin = { top: 4, right: 6, bottom: 4, left: 40 };
-        this.data = Array(default_line_graph_length).fill(0);
+        this.data = Array(this.dots).fill(0);
 
         // Create svg graph and add it to the graph element
         this.svg = d3.select(this.graph).append("svg").attr("width", this.width).attr("height", this.height);
