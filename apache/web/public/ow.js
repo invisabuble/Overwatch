@@ -4,7 +4,7 @@ var screens = {}
 
 var analog_measurement_limit = 4095;
 var default_bar_graph_length = 10;
-var default_line_graph_length = 20;
+var default_line_graph_length = 30;
 
 var red = "rgb(255, 59, 48)";
 var orange = "rgb(255, 149, 0)";

@@ -151,7 +151,9 @@
             try {
 
                 if (data["DISCONNECT"]) {
-                    screens[uuid].disconnected();
+                    if (screens[uuid]) {
+                        screens[uuid].disconnected();
+                    }
                     return;
                 }
 
@@ -161,6 +163,7 @@
 
                     if (!(uuid in screens)) {
                         screens[uuid] = new create_screen(configuration, uuid, ip);
+                        ping_network();
                     }
 
                     return;
