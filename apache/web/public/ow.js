@@ -196,32 +196,32 @@ class create_screen {
             switch (type) {
 
                 case "switch" :
-                    console.log("Creating switch element.");
+                    console.log("Creating switch element for", this.uuid);
                     this.panels["switch"][io] = new create_switch(this.panels["switch"], this.uuid, io, name);
                     break;
 
                 case "output" :
-                    console.log("Creating output element");
+                    console.log("Creating output element for", this.uuid);
                     this.panels["output"][io] = new create_output(this.panels["output"], this.uuid, io, name);
                     break;
 
                 case "pie" :
-                    console.log("Creating pie element");
+                    console.log("Creating pie element for", this.uuid);
                     this.panels["pie"][io] = new create_pie(this.panels["pie"], this.uuid, io, name, unit, max, min, grad);
                     break;
 
                 case "bar" :
-                    console.log("Creating bar element");
+                    console.log("Creating bar element for", this.uuid);
                     this.panels["bar"][io] = new create_bar(this.panels["bar"], this.uuid, io, name, unit, max, min, grad);
                     break;
 
                 case "bar_graph" :
-                    console.log("Creating bar_graph element");
+                    console.log("Creating bar_graph element for", this.uuid);
                     this.panels["bar_graph"][io] = new create_bar_graph(this.panels["bar_graph"], this.uuid, io, name, unit, max, min, grad);
                     break;
 
                 case "line_graph" :
-                    console.log("Creating line_graph element");
+                    console.log("Creating line_graph element for", this.uuid);
                     this.panels["line_graph"][io] = new create_line_graph(this.panels["line_graph"], this.uuid, io, name, unit, max, min, grad);
                     break;
 
@@ -839,10 +839,5 @@ class create_line_graph extends create_analog_element_parameters {
             .attr("cx", (d, i) => this.x(i))
             .attr("cy", d => this.y(d));
 
-
-
-    
     }
 }
-
-
