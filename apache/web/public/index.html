@@ -75,7 +75,7 @@
                     
                     <screen_content>
 
-                        <config_panel class="panel" style="flex-direction: row;">
+                        <config_panel class="panel" style="flex-direction: row; flex-wrap: wrap; overflow: auto;">
                             
                             <analog_graph_container id="server_config_ssl_cert" style="max-width: fit-content; min-width: 200px; max-height: fit-content; min-height: fit-content;">
                                 <graph_label class="graph_label noselect">SSL Cert</graph_label>
@@ -240,16 +240,19 @@
 
         const header = document.getElementById('header');
         const dashboard = document.getElementById('dashboard');
+        const logo = document.getElementById("icon");
 
         let isExpanded = false;
 
-        document.getElementById("icon").addEventListener('click', () => {
+        logo.addEventListener('click', () => {
             if (isExpanded) {
                 header.style.height = '70px';
                 dashboard.style.height = "calc(100% - 90px)";
+                logo.style.transform = "rotate(0deg)";
             } else {
                 header.style.height = header.scrollHeight + 'px';
                 dashboard.style.height = "calc(100% + " + ( - header.scrollHeight ) + "px)";
+                logo.style.transform = "rotate(90deg)";
             }
             isExpanded = !isExpanded;
         });

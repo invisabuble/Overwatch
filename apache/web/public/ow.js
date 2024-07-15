@@ -4,7 +4,7 @@ var screens = {}
 
 var analog_measurement_limit = 4095;
 var default_bar_graph_length = 10;
-var default_line_graph_length = 10;
+var default_line_graph_length = 20;
 
 var red = "rgb(255, 59, 48)";
 var orange = "rgb(255, 149, 0)";
@@ -126,6 +126,14 @@ class create_screen {
         this.device_config.setAttribute("id", this.uuid + "-device_config");
         this.device_config_pre = document.createElement("pre");
         this.device_config_pre.setAttribute("contenteditable", "true");
+
+        this.device_config_pre.addEventListener('paste', function(e) {
+            // Prevent the default paste behavior, format clipboard as plain text then add it into the text box.
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            document.execCommand('insertText', false, text);
+        });
+
         this.device_config_send = document.createElement("device_config_send");
         this.device_config_send.setAttribute("class", "noselect")
         this.device_config_send.setAttribute("onclick", "screens['" + this.uuid + "'].send_device_config()");
@@ -238,7 +246,7 @@ class create_screen {
 
         this.device_config_pre.textContent = JSON.stringify(this.config, null, 1);
         document.getElementById("dashboard").appendChild(this.screen);
-        
+
     }
 
 
@@ -642,7 +650,7 @@ class create_bar_graph extends create_analog_element_parameters {
         this.data = new Array(default_bar_graph_length).fill(0);
 
         // Create bars and append them to the graph and the bar_array.
-        for ( var bar_num = 0; bar_num < default_array_length; bar_num++ ) {
+        for ( var bar_num = 0; bar_num < default_bar_graph_length; bar_num++ ) {
             var bar = document.createElement("bar_graph_bar");
             var bar_label = document.createElement("bar_graph_value");
             bar_label.innerHTML = this.min;

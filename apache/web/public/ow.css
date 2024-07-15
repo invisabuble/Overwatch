@@ -56,6 +56,8 @@ server_config {
 icon {
     width: 50px;
     height: 50px;
+    transition: all 0.3s ease;
+    transform: rotate(0deg);
 }
 
 .header_text {
@@ -499,8 +501,8 @@ bar_graph_value {
   }
   
   .circle {
-    fill: orange;
-    stroke: orange;
+    fill: rgba(255,149,0);
+    stroke: rgba(255,149,0);
     transition: none;
   }
   
