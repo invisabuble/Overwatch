@@ -395,7 +395,7 @@ class create_analog_element_parameters extends create_element_parameters {
             percentage = 100;
         }
 
-        var colour = colours[Math.floor(percentage / 25)];
+        var colour = colours[Math.floor(percentage / 25.001)];
         var adjusted = Math.round((grad * value) + min);
 
         return { percentage, colour, adjusted };

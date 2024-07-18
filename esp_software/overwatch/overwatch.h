@@ -57,7 +57,7 @@ class overwatch_client {
         digitalWrite(status_led, !digitalRead(status_led));
       }
 
-      UUID = WiFi.macAddress();
+      UUID = String("ow_") + WiFi.macAddress();
       IPAddress ip = WiFi.localIP();
       local_ip = ip.toString();
 
