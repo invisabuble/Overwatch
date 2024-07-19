@@ -70,6 +70,9 @@ String configuration = R"(
       "min": "-10",
       "unit": "Atm",
       "type": "bar_graph"
+      "dots": "5",
+      "step": "200",
+      "thresh": "150"
     },
 
     "io-35": {
@@ -86,15 +89,13 @@ String configuration = R"(
       "min": "-20",
       "unit": "C",
       "type": "line_graph"
+      "dots": "25",
+      "step": "100",
+      "thresh": "200"
     }
 
-  },
-
-  "readings": [
-
-    "program_output"
-
-  ]
+  }
+  
 }
 )";
 
