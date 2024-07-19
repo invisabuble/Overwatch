@@ -1,0 +1,12 @@
+{
+
+	"name": "Raspberry",
+	"digital_inputs": [],
+	"digital_measurements" : {
+		"io-14": {
+			"name": "status",
+			"type": "switch"
+		}
+	}
+
+}
