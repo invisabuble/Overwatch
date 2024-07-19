@@ -12,7 +12,63 @@
 
 Preferences preferences;
 using namespace websockets;
-typedef std::vector<int> IntVector;
+
+
+struct measurement {
+
+  String gpio_name;
+  int gpio;
+  int value = 0;
+
+  // Analog parameters
+  int step;
+  int thresh;
+  bool analog;
+
+  unsigned long last_measure = 0;
+
+  measurement(String gpio_name, int step = 0, int thresh = 0, bool analog = false) : gpio_name(gpio_name), step(step), thresh(thresh), analog(analog) {
+    gpio = gpio_name.substring(3).toInt();
+    if (analog) {
+      pinMode(gpio, INPUT_PULLUP);
+    } else {
+      pinMode(gpio, OUTPUT);
+      digitalWrite(gpio, LOW);
+    }
+  }
+
+  int measure_gpio (bool get_values = false) {
+
+    if (analog) {
+
+      unsigned long current_time = millis();
+      if ((current_time - last_measure > step) || (get_values)) {
+
+        int gpio_value = analogRead(gpio);
+        if ((abs(value - gpio_value) > thresh) || (get_values)) {
+          value = gpio_value;
+          return value;
+        } 
+
+        last_measure = current_time;
+      }
+
+    } else {
+
+      int gpio_value = digitalRead(gpio);
+
+      if ((gpio_value != value) || (get_values)) {
+        value = gpio_value;
+        return value;
+      }
+
+    }
+    
+    return -1;
+  
+  }
+
+};
 
 
 class overwatch_client {
@@ -23,10 +79,7 @@ class overwatch_client {
     String ssl_cert;
 
     StaticJsonDocument<1024> device_config;
-    std::vector<std::vector<int>> measurement_array;
-    std::vector<int> digital_inputs = {};
-    std::vector<int> digital_measurements = {};
-    std::vector<int> analog_measurements = {};
+    std::vector<measurement> measurement_array;
 
     int status_led;
     String UUID;
@@ -36,7 +89,6 @@ class overwatch_client {
     WiFiClient espClient;
 
     unsigned long blink_time = 0;
-
 
   public:
 
@@ -66,108 +118,68 @@ class overwatch_client {
       Serial.printf("MAC : ");
       Serial.println(UUID);
 
-      // ========== GET DEVICE CONFIG AND SSL_CERT ========== //
-
-      // This command has to be run the first time that the key for preferences is created:
-      //
-      // preferences_read_write("configuration", configuration);
-      //
-      // This will populate the configuration key in preferences with the configuration variable.
-      // if this command is run again, it wont load the configuration variable into the configuration
-      // key.
-      //
-      // The value stored in any key can be found by using:
-      //
-      // preferences_read_write("key");
-      //
-      // To reset the configuration key to configuration variable, use:
-      // preferences_read_write("configuration", configuration, true);
+      // ========== RETRIEVE CONFIG AND SSL ========== //
 
       config = preferences_read_write("configuration", configuration);
       ssl_cert = preferences_read_write("ssl_cert", ssl_certificate);
 
       Serial.println(config);
 
-      // ========== PARSE DEVICE CONFIG INTO JSON ========== //
-      
+      // ========== PARSE JSON CONFIG ========== //
+
       deserializeJson(device_config, config);
 
-      Serial.println("\n===== DIGITAL INPUTS =====");
-      JsonArray digital_in = device_config["digital_inputs"].as<JsonArray>();
-      for ( int index = 0; index < digital_in.size(); index++ ) {
-        int gpio = digital_in[index].as<int>();
-        Serial.println(gpio);
-        digital_inputs.push_back(gpio);
-        pinMode(gpio, INPUT_PULLUP);
+      // SETUP DIGITAL INPUTS
+      JsonArray digitalInputs = device_config["digital_inputs"].as<JsonArray>();
+      for (JsonVariant digital_input : digitalInputs) {
+          pinMode(digital_input.as<int>(), INPUT_PULLUP);
       }
 
-      Serial.println("\n===== DIGITAL MEASUREMENTS =====");
-      JsonObject digital_ms = device_config["digital_measurements"].as<JsonObject>();
-      std::vector<IntVector> dig_ms;
-      for ( JsonPair keyValue : digital_ms ) {
-        String keyStr = keyValue.key().c_str();
-        keyStr = keyStr.substring(3);
-        int key = keyStr.toInt();
-        Serial.println(key);
-        IntVector measurement = { key, 0 };
-        measurement_array.push_back(measurement);
-        digital_measurements.push_back(key);
-        pinMode(key, OUTPUT);
+      // SETUP DIGITAL MEASUREMENTS
+      JsonObject digitalMeasurements = device_config["digital_measurements"].as<JsonObject>();
+      for (JsonPair digital_measurement : digitalMeasurements) {
+
+        String gpio_name = digital_measurement.key().c_str();
+
+        measurement digital_ms(gpio_name);
+        measurement_array.push_back(digital_ms);
+
       }
 
-      Serial.println("\n===== ANALOG MEASUREMENTS =====");
-      JsonObject analog_ms = device_config["analog_measurements"].as<JsonObject>();
-      std::vector<IntVector> ana_ms;
-      for ( JsonPair keyValue : analog_ms ) {
-        String keyStr = keyValue.key().c_str();
-        keyStr = keyStr.substring(3);
-        int key = keyStr.toInt();
-        Serial.println(key);
-        IntVector measurement = { key, 0 };
-        measurement_array.push_back(measurement);
-        analog_measurements.push_back(key);
-        pinMode(key, INPUT_PULLUP);
-      }
+      // SETUP ANALOG MEASUREMENTS
+      JsonObject analogMeasurements = device_config["analog_measurements"].as<JsonObject>();
+      for (JsonPair analog_measurement : analogMeasurements) {
 
-      // =================================================== //
+          JsonObject measure = analog_measurement.value().as<JsonObject>();
+          String gpio_name = analog_measurement.key().c_str();
+          int step = measure["step"].as<int>();
+          int thresh = measure["thresh"].as<int>();
+
+          measurement analog_ms(gpio_name, step, thresh, true);
+          measurement_array.push_back(analog_ms);
+
+      }
 
     }
 
 
-    void read_measurement_array (String all_values = "") {
+    void read_measurement_array (bool get_values = false) {
 
       bool array_updated = false;
       String update_array = "{\"INFO\":{\"UUID\":\"" + String(UUID) + "\",\"IP\":\"" + String(local_ip) + "\"},\"MEASUREMENTS\":[";
 
-      for (int io = 0; io < measurement_array.size(); io++) {
+      // Use &measure to refer to the original object within the measurement_array, 
+      // Not using the & creates a copy of the instance in the measurement_array and
+      // wont update the original instance.
+      for (measurement &measure : measurement_array) {
 
-        int gpio = measurement_array[io][0];
-        int array_value = measurement_array[io][1];
-        int io_value;
-        
-        if (std::find(digital_measurements.begin(), digital_measurements.end(), gpio) != digital_measurements.end()) {
-          io_value = digitalRead(gpio);
-        }
-        else if (std::find(analog_measurements.begin(), analog_measurements.end(), gpio) != analog_measurements.end()) {
-          io_value = analogRead(gpio);
-
-          if ( abs(io_value - array_value) <= analog_threshold ) {
-            io_value = array_value;
-          }
-
-        }
-        else {
-          return;
-        }
-
-        if ((io_value != array_value) || all_values == "all_values") {
-          if (all_values == "") {
-            measurement_array[io][1] = io_value;
-          }
-          if (update_array.charAt(update_array.length() - 1) == '}'){update_array += ",";}
-          String gpio_state = "{\"io-" + String(gpio) + "\":" + String(io_value) + "}";
-          update_array += gpio_state;
+        int value = measure.measure_gpio(get_values);
+        String gpio_name = measure.gpio_name;
+        if (value != -1) {
           array_updated = true;
+          if (update_array.charAt(update_array.length() - 1) == '}'){update_array += ",";}
+          String gpio_state = "{\"" + gpio_name + "\":" + String(value) + "}";
+          update_array += gpio_state;
         }
       }
 
@@ -178,26 +190,12 @@ class overwatch_client {
       }
 
     }
-    
-    
-    void websocket_connect () {
 
-      client.setCACert(ssl_cert.c_str());
 
-      if (client.connect(String("wss://") + host + ":" + port)) {
-
-        Serial.println("Connected to WebSocket server");
-        wss_send_config();
-        read_measurement_array("all_values");
-
-      } else {
-        Serial.println("Connection failed. Retrying...");
-      }
-
-      client.onMessage([&](WebsocketsMessage message) {
-        wss_receive(message.data());
-      });
-    
+    String stringify_json (JsonObject json_variable) {
+      String variable;
+      serializeJson(json_variable, variable);
+      return variable;
     }
 
 
@@ -218,10 +216,24 @@ class overwatch_client {
     }
 
 
-    String stringify_json (JsonObject json_variable) {
-      String variable;
-      serializeJson(json_variable, variable);
-      return variable;
+    void websocket_connect () {
+
+      client.setCACert(ssl_cert.c_str());
+
+      if (client.connect(String("wss://") + host + ":" + port)) {
+
+        Serial.println("Connected to WebSocket server");
+        wss_send_config();
+        read_measurement_array(true);
+
+      } else {
+        Serial.println("Connection failed. Retrying...");
+      }
+
+      client.onMessage([&](WebsocketsMessage message) {
+        wss_receive(message.data());
+      });
+    
     }
 
 
@@ -233,7 +245,7 @@ class overwatch_client {
 
       if (instruction["ping_network"] == "ping_network") {
         wss_send_config();
-        read_measurement_array("all_values");
+        read_measurement_array(true);
         return;
       }
 
@@ -249,8 +261,7 @@ class overwatch_client {
       int gpio = instruction["gpio"].as<int>();
       String target = instruction["target"].as<String>();
 
-      if ( (target == UUID) && (std::find(digital_measurements.begin(), digital_measurements.end(), gpio) != digital_measurements.end()) ) {
-        Serial.printf("GPIO %d toggled\n", gpio);
+      if ( (target == UUID) ) {
         digitalWrite(gpio, !digitalRead(gpio));
       }
 

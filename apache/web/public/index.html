@@ -135,7 +135,7 @@
         ws.onmessage = (event) => {
             
             data = JSON.parse(event.data);
-            
+
             if (data["ssl_cert"]) {
 
                 let certContent = data["ssl_cert"].trim();

@@ -133,7 +133,6 @@ const char* ssid = "ssid";
 const char* pswd = "pswd";
 const char* host = "pi-host";
 const char* port = "8765";
-int analog_threshold = 200;
 
 
 String configuration = R"(
@@ -149,11 +148,7 @@ String configuration = R"(
 
   "analog_measurements": {
 
-  },
-
-  "readings": [
-
-  ]
+  }
 
 }
 )";
