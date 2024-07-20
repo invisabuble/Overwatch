@@ -1,60 +1,152 @@
 import asyncio
+import threading
 import websockets
 import ssl
 import json
 import socket
 import uuid
 import RPi.GPIO as GPIO
+from getmac import get_mac_address
 
-GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
-
-class ipError (ValueError) :
-    """Error when IP can't be found."""
-    def __init__ (self, message) :
-        super().__init__(f"IP_ERROR: There was an error getting the device IP: \n{message}")
+GPIO.setwarnings(False)
 
 
-class macError (ValueError) :
-    """Error when MAC can't be found."""
-    def __init__ (self, message) :
-        super().__init__(f"MAC_ERROR: There was an error getting the MAC address: \n{message}")
+class WSSError(ValueError):
+    """ Error for wss """
+    def __init__(self, message):
+        super().__init__(f"\nWSSError :\n ERROR OCCURED IN WSS COMMUNICATION : {message}")
 
 
-class wssError (ValueError) :
-    """Error for WSS."""
-    def __init__ (self, message) :
-        super().__init__(f"WSS_ERROR: There was an error in the WSS communication: \n{message}")
+class IPError(ValueError):
+    """ Error for IPs """
+    def __init__(self, message):
+        super().__init__(f"\nIPError :\n ERROR OCCURED WHILST TRYING TO FIND LOCAL IP ADDRESS : {message}")
 
 
-class device :
-    """Class for containing device information and measurements."""
+class MACError(ValueError):
+    """ Error for MACs """
+    def __init__(self, message):
+        super().__init__(f"\nMACError :\n ERROR OCCURED WHILST TRYING TO FIND LOCAL MAC ADDRESS : {message}")
 
-    def __init__ (self, host, port) :
-        """Initialize the overwatch device."""
-        print("Setting up device for overwatch...")
 
-        self.host = host
-        self.port = port
+class device_gpio:
+    """ Define a gpio """
+    def __init__(self, gpio, dig_input=False):
+
+        self.io_num = int(gpio[3:])
+        self.io = gpio
+        self.value = 0
+
+        if dig_input:
+            GPIO.setup(self.io_num, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        else:
+            GPIO.setup(self.io_num, GPIO.OUT)
+            GPIO.output(self.io_num, GPIO.LOW)
+
+
+    def measure(self):
+        gpio_value = GPIO.input(self.io_num)
+        if self.value != gpio_value:
+            self.value = gpio_value
+            return self.value
+
+
+class wss:
+    """ Class for encapsulating wss connection """
+
+    def __init__(self, host, port):
+        # Define the wss location
         self.wss_server = f"wss://{host}:{port}"
 
+        # Create the ssl context
+        self.ssl_context = ssl.create_default_context()
+        self.ssl_context.check_hostname = False
+        self.ssl_context.verify_mode = ssl.CERT_NONE
+
+        self.wss_response = None
+        self.wss_connected = False
+        self.message_data = None
+
+        # Make the wss run
+        self.run_wss_client = True
+
+
+    async def wss_send(self, websocket, message):
+        """ Send message to wss """
+        await websocket.send(message)
+
+
+    async def wss_connection(self):
+        """ Connection to the wss """
+        while self.run_wss_client:
+            try:
+                # Establish connection to the wss
+                async with websockets.connect(self.wss_server, ssl=self.ssl_context) as websocket:
+                    
+                    print(f"Connected to {self.wss_server}")
+                    self.wss_conencted = True
+                    await self.wss_send(websocket, self.message_data)
+
+                    while self.run_wss_client:
+                        # Main communication loop
+                        try:
+                            # Set wss_response to any response received so that it can be analysed
+                            # outside of the wss loop
+                            self.wss_response = await websocket.recv()
+
+                            # Check if message_data is None, if its not None then send its contents
+                            # to the wss
+                            if self.message_data is not None :
+                                await self.wss_send(websocket, self.message_data)
+                                self.message_data = None
+
+                        except websockets.ConnectionClosed:
+                            raise WSSError("CONNECTION CLOSED")
+
+                        except Exception as e:
+                            raise WSSError(e)
+
+            except Exception as e:
+                self.wss_connected = False
+                print(f"WSS CONNECTION ERROR: {e}")
+                await asyncio.sleep(5)
+
+
+    def run(self):
+        """ Run the wss connection """
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.wss_connection())
+
+    def close (self) :
+        self.run_wss_client = False
+
+
+class device(wss):
+    """ Main device class """
+    def __init__(self, host, port):
+        super().__init__(host, port)
+
+        # Load in device config
         device_config = open("device_config.json", "r").read()
         self.config = json.loads(device_config)
+        self.wss_old_response = None
 
-        for gpio in self.config["digital_inputs"] :
-            GPIO.setup(gpio, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        self.input_array = {}
+        self.output_array = {}
 
-        for gpio in list(self.config["digital_measurements"].keys()) :
-            GPIO.setup(int(gpio[3:]), GPIO.OUT)
-            GPIO.output(int(gpio[3:]), 0)
+        # Setup gpios as inputs or outputs
+        for gpio in self.config["digital_inputs"]:
+            self.input_array[gpio] = device_gpio(gpio, True)
+
+        for gpio in list(self.config["digital_measurements"].keys()):
+            self.output_array[gpio] = device_gpio(gpio)
 
         self.ip = None
         self.mac = None
 
-        self.digital_inputs = self.config["digital_inputs"]
-        self.digital_measurements = self.config["digital_measurements"]
-        self.analog_measurements = self.config["analog_measurements"]
-
+        # Get the IP address
         try:
             temp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             temp_socket.connect(("8.8.8.8", 80))
@@ -62,19 +154,41 @@ class device :
             temp_socket.close()
             self.ip = ip_address
         except Exception as e:
-            raise ipError(e)
-
-        try:
-            mac_address = ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) for elements in range(0, 2 * 6, 2)][::-1])
-            self.mac = "ow_" + mac_address.upper()
-        except Exception as e:
-            raise macError(e)
-
-        print(f"\n   IP: {self.ip}\n   MAC: {self.mac}\n   Digital-Inputs: {self.digital_inputs}\n   Digital-Measurements: {self.digital_measurements}\n   Analog-Measurements: {self.analog_measurements}\n")
+            raise IPError(e)
         
+        # Get the MAC address
+        try:
 
-    def device_json (self) :
-        """Function to form JSON to send."""
+            mac_address = get_mac_address()
+            if mac_address:
+                self.mac = "ow_" + mac_address.upper()
+            else:
+                raise MACError("Unable to retrieve MAC address.")
+
+        except Exception as e:
+            raise MACError(e)
+
+        print(f"DEVICE INFO : {self.ip}, {self.mac}")
+        
+        # Set the message data to the output of the device_json function,
+        # When the wss client thread starts it will be sent out immediately
+        self.message_data = self.device_json()
+        # Start the wss thread
+        self.wss_thread = threading.Thread(target=self.run)
+        self.wss_thread.start()
+
+        # Wait for the wss thread to be connected
+        print("Waiting for wss connection to be established .", end="")
+        while self.wss_connected :
+            print(".", end="")
+        print(" ")
+
+        #Start the overwatch loop
+        self.ow_loop()
+
+
+    def device_json(self):
+        """ Return device json """
         json_config = {
             "INFO": {
                 "IP": self.ip,
@@ -85,91 +199,28 @@ class device :
         return json.dumps(json_config)
 
 
-    def gpio_states (self) :
+    def ow_loop(self):
+        """ Main overwatch loop """
+        try:
+            while True:
 
-        update_array = "{\"INFO\":{\"UUID\":\"" + self.mac + "\",\"IP\":\"" + self.ip + "\"},\"MEASUREMENTS\":["
+                response_json = None
 
-        for gpio in list(self.config["digital_measurements"].keys()) :
-            state = GPIO.input(int(gpio[3:]))
-            if (update_array[-1] == "}"):
-                update_array += "," 
-            gpio_state = "{\"" + gpio + "\":" + str(state) + "}"
-            update_array += gpio_state
+                if self.wss_response != self.wss_old_response :
+                    self.wss_old_response = self.wss_response
+                    response_json = json.loads(self.wss_response)
+                    print(self.wss_response)
 
-        update_array += "]}"
-        print(update_array)
-        return update_array
-
-
-    def toggle_gpio (self, gpio) :
-        state = bool(GPIO.input(int(gpio)))
-        new_state = GPIO.LOW if state else GPIO.HIGH
-        GPIO.output(int(gpio), new_state)
+                    if "ping_network" in response_json:
+                        self.message_data = self.device_json()
 
 
-class wss (device) :
-    """Class for encapsulating the secure WebSocket server connection."""
-
-    def __init__ (self, host, port) :
-        """Initialize WSS connection."""
-        print("Setting up WSS connection...")
-        super().__init__(host, port)
-
-        self.ssl_context = ssl.create_default_context()
-        self.ssl_context.check_hostname = False
-        self.ssl_context.verify_mode = ssl.CERT_NONE
+        except Exception as e:
+            raise WSSError(e)
+        
+        finally:
+            self.close()
+            self.wss_thread.join()
 
 
-    async def wss_send (self, websocket, message) :
-        """Send message to the WSS."""
-        await websocket.send(message)
-
-
-    async def wss_connection (self) :
-        """Connection to the WSS."""
-        while True:
-            try:
-                async with websockets.connect(self.wss_server, ssl=self.ssl_context) as websocket:
-                    print("Connected to the server")
-
-                    # Send a message to the server once when the connection is established
-                    await self.wss_send(websocket, self.device_json())
-                    print("Sent device configuration to the server")
-
-                    # Main communication loop
-                    while True:
-                        try:
-                            # Receive a message from the server
-                            response = await websocket.recv()
-                            print("Received response from server:", response)
-
-                            await self.wss_send(websocket, self.gpio_states())
-
-                            json_response = json.loads(response)
-
-                            if json_response.get("ping_network") == "ping_network":
-                                print("Ping network received. Sending config...")
-                                await self.wss_send(websocket, self.device_json())
-                                continue
-
-                            if "gpio" in json_response:
-                                self.toggle_gpio(json_response["gpio"])
-                                continue
-
-                        except websockets.ConnectionClosed:
-                            print("Connection closed, attempting to reconnect...")
-                            break
-                        except Exception as e:
-                            print("Error during communication:", e)
-                            break
-
-            except Exception as e:
-                print("WSS connection error:", e)
-                await asyncio.sleep(5)  # Wait before trying to reconnect
-
-
-    def run (self) :
-        asyncio.get_event_loop().run_until_complete(self.wss_connection())
-
-ow_wss_client = wss("192.168.0.33", "8765")
-ow_wss_client.run()
+ow_client = device("192.168.0.33", "8765")
