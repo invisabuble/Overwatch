@@ -3,6 +3,7 @@ import ssl
 import websockets
 import json
 from getmac import get_mac_address
+import os
 
 cert_path = "/ow.certs/"
 
@@ -19,7 +20,7 @@ async def echo(websocket, path):
     remote_address = websocket.remote_address[0]
     mac_address = get_mac_address(ip=remote_address)
     if mac_address:
-        mac_address = mac_address.upper()
+        mac_address = "ow_" + mac_address.upper()
     connected_clients[websocket] = (remote_address, mac_address)
     print(f"Client connected: IP={remote_address}, MAC={mac_address}")
 
@@ -45,10 +46,19 @@ async def echo(websocket, path):
         await asyncio.gather(*[client.send(disconnect_message) for client in connected_clients])
 
 async def main():
-    async with websockets.serve(echo, "0.0.0.0", 8765, ssl=ssl_context):
+    async with websockets.serve(
+        echo, host, port, ssl=ssl_context,
+        ping_interval=ping_int,  # Send a ping every 10 seconds
+        ping_timeout=ping_tmt     # Wait 5 seconds for a pong before considering the connection closed
+    ):
         print("Overwatch wss server started on 0.0.0.0:8765")
         await asyncio.Future()  # run forever
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    
+    host = os.getenv('WSS_HOST', '0.0.0.0')
+    port = int(os.getenv('WSS_PORT', 8765))
+    ping_int = int(os.getenv('PING_INT', 5))
+    ping_tmt = int(os.getenv('PING_TMT', 5))
 
+    asyncio.run(main())
