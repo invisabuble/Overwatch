@@ -1,7 +1,7 @@
 /* Author : Luke Park */
 
 body {
-    background: #404E4D;
+    background: #214F4B;
     margin: auto;
     overflow: hidden;
 }
@@ -81,7 +81,8 @@ device_status {
 /* ===== Screen Banner ===== */
 
 screen {
-    background: rgba(0,0,0,0.3);
+    min-width: fit-content;
+    background: rgba(0,0,0,0.2);
     border-radius: 7.5px;
     display: flex;
     flex-direction: column;

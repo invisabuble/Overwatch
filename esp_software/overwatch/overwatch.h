@@ -249,7 +249,7 @@ class overwatch_client {
         return;
       }
 
-      if (instruction["set_config"] && (instruction["UUID"] == UUID) && (instruction["IP"] == local_ip)) {
+      if (instruction["set_config"] && (instruction["target"] == UUID)) {
         Serial.println("SETTING NEW CONFIG : ");
         String new_config = stringify_json(instruction["set_config"]);
         Serial.println(new_config);

@@ -112,8 +112,8 @@
     <script>
 
         // Get the origin address of the host
-        //var host_addr = window.location.origin;
-        var host_addr = "http://192.168.0.33"
+        var host_addr = window.location.origin;
+        //var host_addr = "http://192.168.0.33"
         var host_status = document.getElementById("server_status");
 
         // Removes http:// or https:// from the origin so it can be used.
@@ -126,15 +126,29 @@
         const ws = new WebSocket('wss://' + host_addr + ':8765/');
 
         ws.onopen = () => {
-            console.log('Connected to WebSocket server, Pinging network...');
-            ping_network();
-            get_ssl_cert();
+            console.log('Connected to WebSocket server.');
+            
+            var frontend_connect = 
+                {
+                    "INFO":
+                    {
+                        "UUID":"OWF-" + generate_hex(10),
+                        "IP":"ow-frontend"
+                    }
+                };
+
+            console.log(frontend_connect["INFO"]["UUID"])
+
+            ws.send(JSON.stringify(frontend_connect));
+
         };
 
 
         ws.onmessage = (event) => {
             
             data = JSON.parse(event.data);
+
+            //console.log(data);
 
             if (data["ssl_cert"]) {
 
@@ -163,7 +177,6 @@
 
                     if (!(uuid in screens)) {
                         screens[uuid] = new create_screen(configuration, uuid, ip);
-                        ping_network();
                     }
 
                     return;

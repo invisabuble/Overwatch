@@ -15,15 +15,15 @@ var warning_svg = '<svg height="90%" width="90%" viewBox="0 0 20 20"><defs></def
 
 var colours = [red,orange,yellow,green];
 
-function ping_network () {
-    var ping_network = JSON.stringify({ 'ping_network': 'ping_network' });
-    ws.send(ping_network);
-}
 
-
-function get_ssl_cert () {
-    var ssl_cert = JSON.stringify({ 'ssl_cert' : 'ssl_cert' });
-    ws.send(ssl_cert);
+function generate_hex(length) {
+    const characters = '0123456789ABCDEF';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * characters.length);
+        result += characters[randomIndex];
+    }
+    return result;
 }
 
 
@@ -295,8 +295,7 @@ class create_screen {
                 var new_config = JSON.stringify({
 
                     'set_config' : config_to_send,
-                    'UUID' : this.uuid,
-                    'IP' : this.ip,
+                    'target' : this.uuid
     
                 });
 
