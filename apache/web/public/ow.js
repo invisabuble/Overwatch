@@ -270,11 +270,18 @@ class create_screen {
         this.device_config_pre.textContent = JSON.stringify(this.config, null, 1);
         document.getElementById("dashboard").appendChild(this.screen);
 
+        this.is_connected = true;
+
     }
 
 
     send_device_config () {
         // Send the parsed json device config to the device.
+
+        if (!this.is_connected) {
+            this.device_config_send.innerText = "Device disconnected";
+            return;
+        }
 
         var config = this.device_config_pre.innerText;
 
@@ -346,11 +353,13 @@ class create_screen {
 
     disconnected () {
         this.status.style.animation = "status_disconnected 0.3s infinite";
+        this.is_connected = false;
     }
     
     
     connected () {
         this.status.style.animation = "status_connected 1s infinite";
+        this.is_connected = true;
     }
 }
 
@@ -433,6 +442,10 @@ class create_switch extends create_element_parameters {
 
 
     toggle_switch () {
+        if (!screens[this.uuid].is_connected) {
+            console.log(this.uuid + " not connected.")
+            return;
+        }
         // Send toggle message for gpio switch.
         var gpio = this.io.substring(3);
         var message = JSON.stringify({"gpio":gpio,"target":this.uuid});
