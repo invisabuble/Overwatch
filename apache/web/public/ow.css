@@ -552,12 +552,18 @@ reading_label {
 }
 
 reading_value {
+    max-width: 350px;
+    min-width: 200px;
+    width: fit-content;
     color: #2DE1FC;
-    text-wrap: wrap;
-    font-size: 60;
     display: flex;
     justify-content: center;
     align-items: center;
+    font-size: 60px;
+    line-height: 1;
+    text-wrap: wrap;
+    word-break: break-all;
+    overflow: hidden;
 }
 
 /* ========================== */

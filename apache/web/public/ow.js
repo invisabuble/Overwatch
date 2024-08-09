@@ -272,7 +272,7 @@ class create_screen {
 
                 var reading_name = readings[key];
                 console.log("Creating reading element for", this.uuid);
-                this.panels["readings"][reading_name] = new create_reading(this.panels["readings"], this.uuid, reading_name)
+                this.panels["readings"][reading_name] = new create_reading(this.panels["readings"], this.uuid, reading_name);
 
             });
 
