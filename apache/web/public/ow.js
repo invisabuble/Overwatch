@@ -160,12 +160,13 @@ class create_screen {
             bar : null,
             bar_graph : null,
             pie : null,
-            line_graph : null
+            line_graph : null,
+            readings : null
         }
 
-        // ===== PANEL CREATION ===== //
+        // ===== IO PANEL CREATION ===== //
 
-        var joint_dict = {...this.config["analog_measurements"], ...this.config["digital_measurements"]}
+        var joint_dict = {...this.config["analog_measurements"], ...this.config["digital_measurements"]};
 
         Object.keys(joint_dict).forEach(key => {
 
@@ -254,6 +255,28 @@ class create_screen {
             }
 
         });
+
+        // ========== READINGS PANEL CREATION ========== //
+
+        var readings = this.config["readings"];
+
+        if (readings) {
+
+            // If the panel doesnt exist, create it.
+            if (!this.panels["readings"]) {
+                this.panels["readings"] = document.createElement(this.uuid + "_" + "readings_panel");
+                this.panels["readings"].setAttribute("class", "panel");
+            }
+
+            Object.keys(readings).forEach(key => {
+
+                var reading_name = readings[key];
+                console.log("Creating reading element for", this.uuid);
+                this.panels["readings"][reading_name] = new create_reading(this.panels["readings"], this.uuid, reading_name)
+
+            });
+
+        }
 
         // ========== ADD PANELS TO SCREEN ========== //
         
@@ -879,4 +902,35 @@ class create_line_graph extends create_analog_element_parameters {
             .attr("cy", d => this.y(d));
 
     }
+}
+
+
+class create_reading {
+
+    constructor (parent_container, uuid, name) {
+
+        this.parent_object = parent_container;
+        this.uuid = uuid;
+        this.name = name;
+
+        this.id = uuid + "-" + name;
+
+        this.reading_container = document.createElement("reading_container");
+
+        this.reading_label = document.createElement("reading_label");
+        this.reading_label.innerText = this.name;
+
+        this.reading_value = document.createElement("reading_value");
+        this.reading_value.innerText = "null";
+
+        this.reading_container.appendChild(this.reading_label);
+        this.reading_container.appendChild(this.reading_value);
+        this.parent_object.appendChild(this.reading_container);
+
+    }
+
+    update_reading (value) {
+        this.reading_value.innerText = value;
+    }
+
 }

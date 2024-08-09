@@ -1,7 +1,6 @@
 #ifndef OVERWATCH_H
 #define OVERWATCH_H
 
-
 #include <WiFi.h>
 #include <ArduinoWebsockets.h>
 #include <ArduinoJson.h>
@@ -9,99 +8,195 @@
 #include <Preferences.h>
 #include <esp_system.h>
 
-
 Preferences preferences;
 using namespace websockets;
 
-
 struct measurement {
+  String name;
+  int value;
 
-  String gpio_name;
-  int gpio;
-  int value = 0;
+  measurement(String name) : name(name) {}
 
-  // Analog parameters
-  int step;
-  int thresh;
-  bool analog;
-
-  unsigned long last_measure = 0;
-
-  measurement(String gpio_name, int step = 0, int thresh = 0, bool analog = false) : gpio_name(gpio_name), step(step), thresh(thresh), analog(analog) {
-    gpio = gpio_name.substring(3).toInt();
-    if (analog) {
-      pinMode(gpio, INPUT_PULLUP);
-    } else {
-      pinMode(gpio, OUTPUT);
-      digitalWrite(gpio, LOW);
-    }
+  // Virtual method for polymorphism, this method is overwritten in each derived struct.
+  virtual String measure(bool get_value = false) {
+    return String(-1);
   }
 
-  int measure_gpio (bool get_values = false) {
+  virtual void output (String output_value) {
+    return;
+  }
 
-    if (analog) {
+  // Virtual destructor for proper cleanup of derived classes
+  virtual ~measurement() {}
+};
 
-      unsigned long current_time = millis();
-      if ((current_time - last_measure > step) || (get_values)) {
+struct digital_measurement : measurement {
 
-        int gpio_value = analogRead(gpio);
-        if ((abs(value - gpio_value) > thresh) || (get_values)) {
-          value = gpio_value;
-          return value;
-        } 
+  int gpio;
 
-        last_measure = current_time;
-      }
+  digital_measurement(String name) : measurement(name) {
+    gpio = name.substring(3).toInt();
+    pinMode(gpio, OUTPUT);
+    digitalWrite(gpio, LOW);
+  }
 
-    } else {
+  String measure(bool get_value = false) override {
 
-      int gpio_value = digitalRead(gpio);
+    int gpio_value = digitalRead(gpio);
 
-      if ((gpio_value != value) || (get_values)) {
-        value = gpio_value;
-        return value;
-      }
-
+    if ((gpio_value != value) || (get_value)) {
+      value = gpio_value;
+      return String(value);
     }
-    
-    return -1;
+
+    return String(-1);
   
   }
 
 };
 
+struct analog_measurement : measurement {
 
-class overwatch_client {
+  int step;
+  int thresh;
+  int gpio;
+  unsigned long last_measure = 0;
+
+  analog_measurement(String name, int step = 0, int thresh = 0)
+    : measurement(name), step(step), thresh(thresh) {
+    gpio = name.substring(3).toInt();
+    pinMode(gpio, INPUT_PULLUP);
+  }
+
+  String measure(bool get_value = false) override {
+
+    unsigned long current_time = millis();
+
+    if ((current_time - last_measure > step) || (get_value)) {
+
+      last_measure = current_time;
+      int gpio_value = analogRead(gpio);
+
+      if ((abs(value - gpio_value) > thresh) || (get_value)) {
+
+        value = gpio_value;
+        return String(value);
+      
+      }
+
+    }
+
+    return String(-1);
+
+  }
+
+};
+
+struct reading : measurement {
+
+  String value = "\"\"";
+  String last_value = "";
+
+  reading(String name) : measurement(name) {}
+
+  void output(String output_value) {
+    // Encapsulate the output value in quotation marks to avoid JSON errors.
+    value = "\"" + output_value + "\"";
+  
+  }
+
+  String measure(bool get_value = false) override {
+
+    if ((last_value != value) || (get_value)) {
+
+      last_value = value;
+      return String(value);
+
+    }
+
+    return String(-1);
+  
+  }
+
+};
+
+class overwatch_device {
 
   private:
-
-    String config;
-    String ssl_cert;
-
-    StaticJsonDocument<1024> device_config;
-    std::vector<measurement> measurement_array;
-
+  
     int status_led;
     String UUID;
     String local_ip;
 
+    String config;
+    String ssl_cert;
+    String SSID;
+    String PSWD;
+    String HOST;
+    String PORT;
+
     WebsocketsClient client;
     WiFiClient espClient;
+
+    StaticJsonDocument<1024> device_config;
+    std::vector<measurement*> measurement_array;  // Store pointers to measurement
 
     unsigned long blink_time = 0;
 
   public:
 
-    overwatch_client (int status_led = 12) : status_led(status_led) {
+    overwatch_device(int status_led = 12) : status_led(status_led) {
+
+      Serial.println("Starting overwatch device...");
 
       pinMode(status_led, OUTPUT);
       digitalWrite(status_led, LOW);
 
+      // RETRIEVE CONFIG, SSL, WIFI CREDS, OW HOST+PORT
+      config = preferences_read_write("configuration", configuration);
+      ssl_cert = preferences_read_write("ssl_cert", ssl_certificate);
+      SSID = preferences_read_write("ssid", ssid);
+      PSWD = preferences_read_write("pswd", pswd);
+      HOST = preferences_read_write("host", host);
+      PORT = preferences_read_write("port", port);
+
+      Serial.println(config);
+
+      // DESERIALIZE CONFIG
+      deserializeJson(device_config, config);
+
+      // SETUP DIGITAL MEASUREMENTS
+      JsonObject DIGITAL_MEASUREMENTS = device_config["digital_measurements"].as<JsonObject>();
+      for (JsonPair MEASUREMENT : DIGITAL_MEASUREMENTS) {
+        String gpio_name = MEASUREMENT.key().c_str();
+        measurement_array.push_back(new digital_measurement(gpio_name));
+        Serial.printf("DM : %s\n", gpio_name.c_str());
+      }
+
+      // SETUP ANALOG MEASUREMENTS
+      JsonObject ANALOG_MEASUREMENTS = device_config["analog_measurements"].as<JsonObject>();
+      for (JsonPair MEASUREMENT : ANALOG_MEASUREMENTS) {
+        JsonObject measure = MEASUREMENT.value().as<JsonObject>();
+        String gpio_name = MEASUREMENT.key().c_str();
+        int step = measure["step"].as<int>();
+        int thresh = measure["thresh"].as<int>();
+        measurement_array.push_back(new analog_measurement(gpio_name, step, thresh));
+        Serial.printf("AM : %s\n", gpio_name.c_str());
+      }
+
+      // SETUP READINGS
+      JsonArray READINGS = device_config["readings"].as<JsonArray>();
+      for (JsonVariant READING : READINGS) {
+        String reading_name = READING.as<String>();
+        measurement_array.push_back(new reading(reading_name));
+        Serial.printf("R: %s\n", reading_name.c_str());
+      }
+
       // ========== CONNECT TO WIFI ========== //
 
-      Serial.printf("Connecting to WiFi .");
+      Serial.printf("Connecting to %s .", SSID);
 
-      WiFi.begin(ssid, pswd);
+      WiFi.begin(SSID,PSWD);
 
       while (WiFi.status() != WL_CONNECTED) {
         delay(1000);
@@ -113,106 +208,19 @@ class overwatch_client {
       IPAddress ip = WiFi.localIP();
       local_ip = ip.toString();
 
-      Serial.printf("\nConnected to %s\nIP : ", ssid);
+      Serial.printf("\nConnected to %s\nIP : ", SSID);
       Serial.println(WiFi.localIP());
       Serial.printf("MAC : ");
       Serial.println(UUID);
 
-      // ========== RETRIEVE CONFIG AND SSL ========== //
-
-      config = preferences_read_write("configuration", configuration);
-      ssl_cert = preferences_read_write("ssl_cert", ssl_certificate);
-
-      Serial.println(config);
-
-      // ========== PARSE JSON CONFIG ========== //
-
-      deserializeJson(device_config, config);
-
-      // SETUP DIGITAL INPUTS
-      JsonArray digitalInputs = device_config["digital_inputs"].as<JsonArray>();
-      for (JsonVariant digital_input : digitalInputs) {
-          pinMode(digital_input.as<int>(), INPUT_PULLUP);
-      }
-
-      // SETUP DIGITAL MEASUREMENTS
-      JsonObject digitalMeasurements = device_config["digital_measurements"].as<JsonObject>();
-      for (JsonPair digital_measurement : digitalMeasurements) {
-
-        String gpio_name = digital_measurement.key().c_str();
-
-        measurement digital_ms(gpio_name);
-        measurement_array.push_back(digital_ms);
-
-      }
-
-      // SETUP ANALOG MEASUREMENTS
-      JsonObject analogMeasurements = device_config["analog_measurements"].as<JsonObject>();
-      for (JsonPair analog_measurement : analogMeasurements) {
-
-          JsonObject measure = analog_measurement.value().as<JsonObject>();
-          String gpio_name = analog_measurement.key().c_str();
-          int step = measure["step"].as<int>();
-          int thresh = measure["thresh"].as<int>();
-
-          measurement analog_ms(gpio_name, step, thresh, true);
-          measurement_array.push_back(analog_ms);
-
-      }
-
     }
 
 
-    void read_measurement_array (bool get_values = false) {
-
-      bool array_updated = false;
-      String update_array = "{\"INFO\":{\"UUID\":\"" + String(UUID) + "\",\"IP\":\"" + String(local_ip) + "\"},\"MEASUREMENTS\":[";
-
-      // Use &measure to refer to the original object within the measurement_array, 
-      // Not using the & creates a copy of the instance in the measurement_array and
-      // wont update the original instance.
-      for (measurement &measure : measurement_array) {
-
-        int value = measure.measure_gpio(get_values);
-        String gpio_name = measure.gpio_name;
-        if (value != -1) {
-          array_updated = true;
-          if (update_array.charAt(update_array.length() - 1) == '}'){update_array += ",";}
-          String gpio_state = "{\"" + gpio_name + "\":" + String(value) + "}";
-          update_array += gpio_state;
-        }
+    // Clean up memory to prevent leaks
+    ~overwatch_device() {
+      for (measurement* m : measurement_array) {
+        delete m;
       }
-
-      update_array = update_array + "]}";
-
-      if (array_updated) {
-        client.send(update_array);
-      }
-
-    }
-
-
-    String stringify_json (JsonObject json_variable) {
-      String variable;
-      serializeJson(json_variable, variable);
-      return variable;
-    }
-
-
-    void wss_send_config () {
-
-      StaticJsonDocument<200> ESP_CONFIG;
-      ESP_CONFIG["INFO"]["UUID"] = UUID;
-      ESP_CONFIG["INFO"]["IP"] = local_ip;
-      configuration.replace("\n", "");
-      configuration.replace(" ", "");
-      ESP_CONFIG["CONFIG"] = config;
-      
-      String espConfigString;
-      serializeJson(ESP_CONFIG, espConfigString);
-
-      client.send(espConfigString);
-
     }
 
 
@@ -237,6 +245,55 @@ class overwatch_client {
     }
 
 
+    void wss_send_config () {
+
+      StaticJsonDocument<200> ESP_CONFIG;
+      ESP_CONFIG["INFO"]["UUID"] = UUID;
+      ESP_CONFIG["INFO"]["IP"] = local_ip;
+      config.replace("\n", "");
+      config.replace(" ", "");
+      ESP_CONFIG["CONFIG"] = config;
+      
+      String espConfigString;
+      serializeJson(ESP_CONFIG, espConfigString);
+
+      client.send(espConfigString);
+
+    }
+
+
+    String stringify_json (JsonObject json_variable) {
+      String variable;
+      serializeJson(json_variable, variable);
+      return variable;
+    }
+
+
+    void update_reading (String reading, String value) {
+      
+      // Itterate through the pointer array.
+      for (measurement* MEASURE : measurement_array) {
+
+        // Use -> to access the variables of the object
+        String name = MEASURE->name;
+        
+        if (reading == name) {
+
+          Serial.printf("Updating reading : ");
+          Serial.println(name);
+          Serial.println(value);
+
+          MEASURE->output(value);
+
+          return;
+
+        }
+
+      }
+
+    }
+
+
     void wss_receive (String data) {
       Serial.println(data);
 
@@ -249,7 +306,7 @@ class overwatch_client {
         return;
       }
 
-      if (instruction["set_config"] && (instruction["target"] == UUID)) {
+      if (instruction["set_config"]) {
         Serial.println("SETTING NEW CONFIG : ");
         String new_config = stringify_json(instruction["set_config"]);
         Serial.println(new_config);
@@ -268,17 +325,47 @@ class overwatch_client {
     }
 
 
-    void wipe_preferences () {
+    void read_measurement_array(bool get_values = false) {
 
-      // This function will wipe all of the keys from the preferences.
-      preferences.clear();
-      Serial.println("Wiped all preferences.");
+      bool array_updated = false;
+      String update_array = "{\"INFO\":{\"UUID\":\"" + String(UUID) + "\",\"IP\":\"" + String(local_ip) + "\",\"TYPE\":\"device\"},\"MEASUREMENTS\":[";
+
+      // Itterate through the pointer array.
+      for (measurement* MEASURE : measurement_array) {
+
+        // Use -> to access the method of the object
+        String value = MEASURE->measure(get_values);
+
+        if (value != "-1") {
+          array_updated = true;
+          if (update_array.charAt(update_array.length() - 1) == '}') {
+            update_array += ",";
+          }
+
+          String name = MEASURE->name;
+          String measurement_state = "{\"" + name + "\":" + value + "}";
+          update_array += measurement_state;
+
+        }
+      }
+
+      update_array += "]}";
+
+      if (array_updated) {
+        Serial.println(update_array);
+        client.send(update_array);
+      }
 
     }
 
 
-    String preferences_read_write (String variable_name, String variable = "", bool new_variable = false) {
+    void wipe_preferences() {
+      preferences.clear();
+      Serial.println("Wiped all preferences.");
+    }
 
+
+    String preferences_read_write(String variable_name, String variable = "", bool new_variable = false) {
       preferences.begin("overwatch", false);
 
       if (!preferences.isKey(variable_name.c_str())) {
@@ -295,7 +382,6 @@ class overwatch_client {
       //wipe_preferences();
       preferences.end();
       return preferences_variable;
-
     }
 
 
@@ -323,8 +409,6 @@ class overwatch_client {
       }
     }
 
-
 };
-
 
 #endif

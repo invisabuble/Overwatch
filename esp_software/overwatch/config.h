@@ -130,10 +130,11 @@ aEqihDDYtp50Kb4qompczNk=
 -----END CERTIFICATE-----
 )";
 
-const char* ssid = "ssid";
-const char* pswd = "pswd";
-const char* host = "pi-host";
-const char* port = "8765";
+
+String ssid = "ssid";
+String pswd = "pswd";
+String host = "host";
+String port = "port";
 
 
 String configuration = R"(
@@ -143,13 +144,11 @@ String configuration = R"(
 
   "digital_inputs": [],
 
-  "digital_measurements": {
+  "digital_measurements": {},
 
-  },
+  "analog_measurements": {},
 
-  "analog_measurements": {
-
-  }
+  "readings": []
 
 }
 )";

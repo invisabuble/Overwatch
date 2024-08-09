@@ -501,24 +501,24 @@ bar_graph_value {
     stroke-width: 2px;
   }
   
-  .circle {
+.circle {
     fill: rgba(255,149,0);
     stroke: rgba(255,149,0);
     transition: none;
-  }
+}
   
-  .axis path,
-  .axis line {
+.axis path,
+.axis line {
     stroke: white;
-  }
+}
   
-  .axis {
+.axis {
     font-family: poppins;
     font-size: 12px;
     color: white;
-  }
+}
 
-  .tooltip {
+.tooltip {
     position: absolute;
     text-align: center;
     font: 12px poppins;
@@ -528,6 +528,39 @@ bar_graph_value {
     pointer-events: none;
 }
 
+/* ===== Readings ===== */
+
+reading_container {
+    width: fit-content;
+    height: fit-content;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    color: white;
+    font-family: poppins;
+    overflow: hidden;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+reading_label {
+    width: 110%;
+    margin-left: -10px;
+    padding-left: 10px;
+    background: rgba(0,0,0,0.2);
+}
+
+reading_value {
+    color: #2DE1FC;
+    text-wrap: wrap;
+    font-size: 60;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 /* ========================== */
+
 
 /* ================================ */

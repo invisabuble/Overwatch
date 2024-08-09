@@ -219,6 +219,10 @@
                         if ((scr.panels.line_graph) && (scr.panels['line_graph'][gpio])) {
                             scr.panels['line_graph'][gpio].update_line_graph(value);
                         }
+
+                        if ((scr.panels.readings) && (scr.panels['readings'][gpio])) {
+                            scr.panels['readings'][gpio].update_reading(value);
+                        }
                         
                     }
 

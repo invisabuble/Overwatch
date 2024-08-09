@@ -15,7 +15,8 @@ def printc(message, colour, bold="", **kwargs):
         "yellow": f"\033[{n};93m",
         "grey": f"\033[{n};90m",
         "cyan": f"\033[{n};36m",
-        "darkred": f"\033[{n}31m"
+        "darkred": f"\033[{n}31m",
+        "magenta": f"\033[{n}95m"
     }
     colour = colours[colour.lower()]
     print(f"{colour}{message}\033[0;0m", **kwargs)
@@ -81,6 +82,13 @@ async def handler(websocket, path):
 
                 if target_connection and target_connection.open:
                     await target_connection.send(message)
+
+                if "set_config" in json_message:
+                    printc(f"New config sent to {target_uuid}, removing old instance from dictionary.","magenta")
+                    if target_uuid in devices:
+                        del devices[target_uuid]
+                    else:
+                        printc(f"Could'nt remove {target_uuid} from device dictionary.","red")
 
                 else:
                     printc(f"Target {target_uuid} not found or not open", "yellow")
