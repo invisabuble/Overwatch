@@ -33,11 +33,17 @@ struct measurement {
 struct digital_measurement : measurement {
 
   int gpio;
+  bool button;
 
-  digital_measurement(String name) : measurement(name) {
+  digital_measurement(String name, bool button = false) : measurement(name), button(button) {
     gpio = name.substring(3).toInt();
-    pinMode(gpio, OUTPUT);
-    digitalWrite(gpio, LOW);
+    if (button) {
+      pinMode(gpio, INPUT_PULLUP);
+    } else {
+      pinMode(gpio, OUTPUT);
+      digitalWrite(gpio, LOW);
+    }
+    
   }
 
   String measure(bool get_value = false) override {
@@ -46,6 +52,9 @@ struct digital_measurement : measurement {
 
     if ((gpio_value != value) || (get_value)) {
       value = gpio_value;
+      if (button) {
+        return String(!value);
+      }
       return String(value);
     }
 
@@ -165,12 +174,39 @@ class overwatch_device {
       // DESERIALIZE CONFIG
       deserializeJson(device_config, config);
 
+      // SETUP DIGITAL INPUTS
+      JsonArray DIGITAL_INPUTS = device_config["digital_inputs"].as<JsonArray>();
+      for (JsonVariant DIGITAL_INPUT : DIGITAL_INPUTS) {
+        pinMode(DIGITAL_INPUT.as<int>(), INPUT);
+      }
+
       // SETUP DIGITAL MEASUREMENTS
       JsonObject DIGITAL_MEASUREMENTS = device_config["digital_measurements"].as<JsonObject>();
       for (JsonPair MEASUREMENT : DIGITAL_MEASUREMENTS) {
+
         String gpio_name = MEASUREMENT.key().c_str();
-        measurement_array.push_back(new digital_measurement(gpio_name));
+
+        // Check if the digital measurement is also a digital input
+        String gpio = gpio_name.substring(3);
+
         Serial.printf("DM : %s\n", gpio_name.c_str());
+
+        bool is_input = false;
+
+        for (JsonVariant DIGITAL_INPUT : DIGITAL_INPUTS) {
+            
+            String digital_input = String(DIGITAL_INPUT.as<int>());
+
+            if (digital_input == gpio) {
+              is_input = true;
+              Serial.printf("   DI : %s\n", gpio_name.c_str());
+              break;
+            } 
+
+        }
+
+        measurement_array.push_back(new digital_measurement(gpio_name, is_input));
+
       }
 
       // SETUP ANALOG MEASUREMENTS
@@ -251,7 +287,6 @@ class overwatch_device {
       ESP_CONFIG["INFO"]["UUID"] = UUID;
       ESP_CONFIG["INFO"]["IP"] = local_ip;
       config.replace("\n", "");
-      config.replace(" ", "");
       ESP_CONFIG["CONFIG"] = config;
       
       String espConfigString;
