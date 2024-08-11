@@ -136,6 +136,7 @@ class overwatch_device {
     int status_led;
     String UUID;
     String local_ip;
+    bool read_array = true;
 
     String config;
     String ssl_cert;
@@ -267,6 +268,7 @@ class overwatch_device {
       if (client.connect(String("wss://") + host + ":" + port)) {
 
         Serial.println("Connected to WebSocket server");
+        digitalWrite(status_led, LOW);
         wss_send_config();
         read_measurement_array(true);
 
@@ -342,6 +344,10 @@ class overwatch_device {
       }
 
       if (instruction["set_config"]) {
+
+        Serial.println("NEW CONFIG RECEIVED, SHUTTING DOWN WSS CLIENT...");
+        client.close();
+        read_array = false;
         Serial.println("SETTING NEW CONFIG : ");
         String new_config = stringify_json(instruction["set_config"]);
         Serial.println(new_config);
@@ -361,6 +367,10 @@ class overwatch_device {
 
 
     void read_measurement_array(bool get_values = false) {
+
+      if (!read_array) {
+        return;
+      }
 
       bool array_updated = false;
       String update_array = "{\"INFO\":{\"UUID\":\"" + String(UUID) + "\",\"IP\":\"" + String(local_ip) + "\",\"TYPE\":\"device\"},\"MEASUREMENTS\":[";
