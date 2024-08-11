@@ -94,7 +94,11 @@ String configuration = R"(
       "thresh": "200"
     }
 
-  }
+  },
+
+  "readings": [
+    "esp_test_reading"
+  ]
   
 }
 )";
