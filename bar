@@ -6,7 +6,7 @@
 HOST_IP=$(echo $(hostname -I | awk '{print $1}'))
 echo -e "\n\033[01;92m Setting up Overwatch for : $HOST_IP\n\033[0;0m"
 
-# Generate the certificates if they cannout be found
+# Generate the certificates if they cannot be found
 if [ ! -f apache/build/certs/overwatch.key ] || [ ! -f apache/build/certs/overwatch.crt ]; then
 	echo -e "\033[01;93mNo certificates detected. Generating them now...\033[0;0m"
 	mkdir apache/build/certs
